@@ -2,6 +2,18 @@ import Foundation
 import EventKit
 import GRDB
 
+/// Protocol for abstracting EventKit store for testing
+public protocol EventStoreProtocol {
+    func requestAccess(to entityType: EKEntityType, completion: @escaping (Bool, Error?) -> Void)
+    func calendars(for entityType: EKEntityType) -> [EKCalendar]
+    func events(matching predicate: NSPredicate) -> [EKEvent]
+    func predicateForEvents(withStart startDate: Date, end endDate: Date, calendars: [EKCalendar]?) -> NSPredicate
+    static func authorizationStatus(for entityType: EKEntityType) -> EKAuthorizationStatus
+}
+
+/// Extension to make EKEventStore conform to EventStoreProtocol
+extension EKEventStore: EventStoreProtocol {}
+
 /// Update type for event callbacks
 public enum UpdateType {
     case inserted
@@ -21,7 +33,7 @@ public class CalendarSync {
     private let databaseManager: DatabaseManager
     
     /// Event store for accessing system calendar
-    private let eventStore: EKEventStore
+    private let eventStore: EventStoreProtocol
     
     /// Current sync status
     private var _syncStatus: SyncStatus = .idle
@@ -88,9 +100,9 @@ public class CalendarSync {
     }
     
     /// Initialize with custom configuration
-    public init(configuration: CalendarSyncConfiguration = .default) throws {
+    public init(configuration: CalendarSyncConfiguration = .default, eventStore: EventStoreProtocol? = nil) throws {
         self.configuration = configuration
-        self.eventStore = EKEventStore()
+        self.eventStore = eventStore ?? EKEventStore()
         
         // Validate configuration
         try configuration.validate()
@@ -241,7 +253,7 @@ public class CalendarSync {
     }
     
     private func requestCalendarPermission(completion: @escaping (Bool) -> Void) {
-        let status = EKEventStore.authorizationStatus(for: .event)
+        let status = type(of: eventStore).authorizationStatus(for: .event)
         
         switch status {
         case .authorized:
@@ -266,7 +278,7 @@ public class CalendarSync {
     private func setupNotificationObserver() {
         notificationObserver = NotificationCenter.default.addObserver(
             forName: .EKEventStoreChanged,
-            object: eventStore,
+            object: eventStore as? EKEventStore,
             queue: nil
         ) { [weak self] _ in
             // Calendar data changed, trigger sync with debounce
@@ -403,6 +415,63 @@ public class CalendarSync {
         )
         
         return eventStore.events(matching: predicate)
+    }
+    
+    // Method for testing - allows direct injection of CalendarEvent objects
+    internal func syncWithMockEvents(_ events: [CalendarEvent]) throws {
+        guard isActive else { return }
+        
+        updateSyncStatus(.syncing)
+        
+        let startTime = Date()
+        
+        do {
+            // Get existing events from database
+            let existingEvents = try databaseManager.getAllEvents()
+            let existingIdentifiers = Set(existingEvents.map { $0.eventIdentifier })
+            let systemIdentifiers = Set(events.map { $0.eventIdentifier })
+            
+            // Find events to delete (no longer in system calendar)
+            let eventsToDelete = existingIdentifiers.subtracting(systemIdentifiers)
+            
+            // Sync with database
+            let syncResult = try databaseManager.syncEvents(
+                events,
+                removedIdentifiers: Array(eventsToDelete)
+            )
+            
+            // Update statistics
+            let duration = Date().timeIntervalSince(startTime)
+            let totalEvents = try databaseManager.getTotalEventCount()
+            
+            let newStats = SyncStatistics(
+                totalEvents: totalEvents,
+                lastSyncDuration: duration,
+                successfulSyncs: syncStatistics.successfulSyncs + 1,
+                failedSyncs: syncStatistics.failedSyncs
+            )
+            
+            updateSyncStatistics(newStats)
+            
+            // Notify about changes
+            notifyEventUpdates(
+                inserted: syncResult.inserted,
+                updated: syncResult.updated,
+                deleted: syncResult.deleted
+            )
+            
+            // Reset retry count on success
+            retryCount = 0
+            
+            updateSyncStatus(.synced(totalEvents))
+            
+            if configuration.enableLogging {
+                print("Mock sync completed: \(syncResult.inserted) inserted, \(syncResult.updated) updated, \(syncResult.deleted) deleted")
+            }
+            
+        } catch {
+            handleSyncError(error)
+        }
     }
     
     private func handleSyncError(_ error: Error) {
