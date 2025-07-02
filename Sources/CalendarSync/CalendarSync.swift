@@ -320,19 +320,30 @@ public class CalendarSync {
             let systemEvents = try getSystemEvents(from: calendarsToSync)
             
             // Convert to CalendarEvent objects (syncedAt will be handled by DatabaseManager)
-            let calendarEvents = systemEvents.map { CalendarEvent(from: $0, syncedAt: Date(timeIntervalSince1970: 0)) }
+            let calendarEvents = systemEvents.map { CalendarEvent(from: $0) }
+            
+            // Remove duplicates based on eventIdentifier
+            var uniqueEvents: [String: CalendarEvent] = [:]
+            for event in calendarEvents {
+                uniqueEvents[event.eventIdentifier] = event
+            }
+            let uniqueCalendarEvents = Array(uniqueEvents.values)
+            
+            if configuration.enableLogging && calendarEvents.count != uniqueCalendarEvents.count {
+                print("Removed \(calendarEvents.count - uniqueCalendarEvents.count) duplicate events")
+            }
             
             // Get existing events from database
             let existingEvents = try databaseManager.getAllEvents()
             let existingIdentifiers = Set(existingEvents.map { $0.eventIdentifier })
-            let systemIdentifiers = Set(calendarEvents.map { $0.eventIdentifier })
+            let systemIdentifiers = Set(uniqueCalendarEvents.map { $0.eventIdentifier })
             
             // Find events to delete (no longer in system calendar)
             let eventsToDelete = existingIdentifiers.subtracting(systemIdentifiers)
             
             // Sync with database
             let syncResult = try databaseManager.syncEvents(
-                calendarEvents,
+                uniqueCalendarEvents,
                 removedIdentifiers: Array(eventsToDelete)
             )
             

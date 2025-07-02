@@ -85,22 +85,33 @@ public struct CalendarEvent {
     
     /// Initialize from EKEvent
     public init(from ekEvent: EKEvent, syncedAt: Date = Date()) {
+        // Helper function to normalize date precision to seconds
+        func normalizeDate(_ date: Date) -> Date {
+            return Date(timeIntervalSince1970: date.timeIntervalSince1970.rounded())
+        }
+        
+        // Helper function to normalize optional date
+        func normalizeOptionalDate(_ date: Date?) -> Date? {
+            guard let date = date else { return nil }
+            return normalizeDate(date)
+        }
+        
         self.init(
             eventIdentifier: ekEvent.eventIdentifier,
             title: ekEvent.title,
             notes: ekEvent.notes,
-            startDate: ekEvent.startDate,
-            endDate: ekEvent.endDate,
+            startDate: normalizeDate(ekEvent.startDate),
+            endDate: normalizeDate(ekEvent.endDate),
             isAllDay: ekEvent.isAllDay,
             calendarIdentifier: ekEvent.calendar.calendarIdentifier,
             calendarTitle: ekEvent.calendar.title,
             location: ekEvent.location,
             url: ekEvent.url,
-            lastModifiedDate: ekEvent.lastModifiedDate,
-            creationDate: ekEvent.creationDate,
+            lastModifiedDate: normalizeOptionalDate(ekEvent.lastModifiedDate),
+            creationDate: normalizeOptionalDate(ekEvent.creationDate),
             status: ekEvent.status,
             hasRecurrenceRules: ekEvent.hasRecurrenceRules,
-            syncedAt: syncedAt
+            syncedAt: normalizeDate(syncedAt)
         )
     }
 }

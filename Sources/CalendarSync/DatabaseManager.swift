@@ -246,6 +246,10 @@ internal class DatabaseManager {
             var inserted = 0
             var updated = 0
             
+            if configuration.enableLogging {
+                print("Starting sync with \(newEvents.count) events from system")
+            }
+            
             // Insert or update events
             for event in newEvents {
                 let existingEvent = try CalendarEvent
@@ -269,6 +273,10 @@ internal class DatabaseManager {
                     mutableEvent.syncedAt = Date()
                     try mutableEvent.save(db)
                     inserted += 1
+                    
+                    if configuration.enableLogging {
+                        print("Inserted new event: \(event.eventIdentifier)")
+                    }
                 }
             }
             
@@ -277,24 +285,62 @@ internal class DatabaseManager {
                 .filter(removedIdentifiers.contains(CalendarEvent.Columns.eventIdentifier))
                 .deleteAll(db)
             
+            if configuration.enableLogging && deleted > 0 {
+                print("Deleted \(deleted) events")
+            }
+            
             return (inserted: inserted, updated: updated, deleted: deleted)
         }
     }
     
     /// Check if event has changed (excluding syncedAt timestamp)
     private func hasEventChanged(existing: CalendarEvent, new: CalendarEvent) -> Bool {
-        return existing.title != new.title ||
-               existing.location != new.location ||
-               existing.notes != new.notes ||
-               existing.startDate != new.startDate ||
-               existing.endDate != new.endDate ||
-               existing.isAllDay != new.isAllDay ||
-               existing.url != new.url ||
-               existing.status != new.status ||
-               existing.lastModifiedDate != new.lastModifiedDate ||
-               existing.creationDate != new.creationDate ||
-               existing.hasRecurrenceRules != new.hasRecurrenceRules ||
-               existing.calendarIdentifier != new.calendarIdentifier ||
-               existing.calendarTitle != new.calendarTitle
+        var changedFields: [String] = []
+        
+        if existing.title != new.title {
+            changedFields.append("title")
+        }
+        if existing.location != new.location {
+            changedFields.append("location")
+        }
+        if existing.notes != new.notes {
+            changedFields.append("notes")
+        }
+        if existing.startDate != new.startDate {
+            let diff = existing.startDate.timeIntervalSince(new.startDate)
+            changedFields.append("startDate(diff: \(String(format: "%.3f", diff))s)")
+        }
+        if existing.endDate != new.endDate {
+            let diff = existing.endDate.timeIntervalSince(new.endDate)
+            changedFields.append("endDate(diff: \(String(format: "%.3f", diff))s)")
+        }
+        if existing.isAllDay != new.isAllDay {
+            changedFields.append("isAllDay")
+        }
+        if existing.url != new.url {
+            changedFields.append("url")
+        }
+        if existing.status != new.status {
+            changedFields.append("status")
+        }
+        // Skip lastModifiedDate and creationDate comparison as these are system-managed
+        // and small precision differences shouldn't trigger updates
+        if existing.hasRecurrenceRules != new.hasRecurrenceRules {
+            changedFields.append("hasRecurrenceRules")
+        }
+        if existing.calendarIdentifier != new.calendarIdentifier {
+            changedFields.append("calendarIdentifier")
+        }
+        if existing.calendarTitle != new.calendarTitle {
+            changedFields.append("calendarTitle")
+        }
+        
+        let hasChanged = !changedFields.isEmpty
+        
+        if hasChanged && configuration.enableLogging {
+            print("Event \(existing.eventIdentifier) changed fields: \(changedFields.joined(separator: ", "))")
+        }
+        
+        return hasChanged
     }
 } 
