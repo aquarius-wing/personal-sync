@@ -47,7 +47,7 @@ public struct CalendarEvent {
     public let hasRecurrenceRules: Bool
     
     /// Sync timestamp
-    public let syncedAt: Date
+    public var syncedAt: Date
     
     public init(
         eventIdentifier: String,

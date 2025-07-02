@@ -14,6 +14,10 @@ let package = Package(
             name: "CalendarSync",
             targets: ["CalendarSync"]
         ),
+        .executable(
+            name: "CalendarSyncDemo",
+            targets: ["CalendarSyncDemo"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "6.0.0")
@@ -24,6 +28,11 @@ let package = Package(
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift")
             ]
+        ),
+        .executableTarget(
+            name: "CalendarSyncDemo",
+            dependencies: ["CalendarSync"],
+            path: "Demo"
         ),
         .testTarget(
             name: "CalendarSyncTests",

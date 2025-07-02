@@ -34,6 +34,9 @@ public class CalendarSync {
     /// Background sync timer
     private var syncTimer: Timer?
     
+    /// Debounce timer for sync notifications
+    private var syncDebounceTimer: Timer?
+    
     /// Is sync currently active
     private var _isActive: Bool = false
     private let activeQueue = DispatchQueue(label: "com.calendarsync.active", attributes: .concurrent)
@@ -151,6 +154,10 @@ public class CalendarSync {
         syncTimer?.invalidate()
         syncTimer = nil
         
+        // Stop debounce timer
+        syncDebounceTimer?.invalidate()
+        syncDebounceTimer = nil
+        
         updateSyncStatus(.idle)
     }
     
@@ -262,7 +269,17 @@ public class CalendarSync {
             object: eventStore,
             queue: nil
         ) { [weak self] _ in
-            // Calendar data changed, trigger sync
+            // Calendar data changed, trigger sync with debounce
+            self?.scheduleDelayedSync()
+        }
+    }
+    
+    private func scheduleDelayedSync() {
+        // Cancel existing delayed sync if any
+        syncDebounceTimer?.invalidate()
+        
+        // Schedule new sync with 1 second delay to avoid duplicate notifications
+        syncDebounceTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
             self?.performSync()
         }
     }
@@ -302,8 +319,8 @@ public class CalendarSync {
             // Get events from system calendar
             let systemEvents = try getSystemEvents(from: calendarsToSync)
             
-            // Convert to CalendarEvent objects
-            let calendarEvents = systemEvents.map { CalendarEvent(from: $0) }
+            // Convert to CalendarEvent objects (syncedAt will be handled by DatabaseManager)
+            let calendarEvents = systemEvents.map { CalendarEvent(from: $0, syncedAt: Date(timeIntervalSince1970: 0)) }
             
             // Get existing events from database
             let existingEvents = try databaseManager.getAllEvents()

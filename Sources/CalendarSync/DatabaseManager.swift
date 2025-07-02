@@ -248,16 +248,26 @@ internal class DatabaseManager {
             
             // Insert or update events
             for event in newEvents {
-                let exists = try CalendarEvent
+                let existingEvent = try CalendarEvent
                     .filter(CalendarEvent.Columns.eventIdentifier == event.eventIdentifier)
-                    .fetchCount(db) > 0
+                    .fetchOne(db)
                 
-                var mutableEvent = event
-                try mutableEvent.save(db)
-                
-                if exists {
-                    updated += 1
+                if let existing = existingEvent {
+                    // Check if event actually changed
+                    if hasEventChanged(existing: existing, new: event) {
+                        var mutableEvent = event
+                        // Update syncedAt to current time for changed events
+                        mutableEvent.syncedAt = Date()
+                        try mutableEvent.save(db)
+                        updated += 1
+                    }
+                    // If no changes, keep existing event as-is (no database update)
                 } else {
+                    // New event - insert
+                    var mutableEvent = event
+                    // Set syncedAt to current time for new events
+                    mutableEvent.syncedAt = Date()
+                    try mutableEvent.save(db)
                     inserted += 1
                 }
             }
@@ -269,5 +279,22 @@ internal class DatabaseManager {
             
             return (inserted: inserted, updated: updated, deleted: deleted)
         }
+    }
+    
+    /// Check if event has changed (excluding syncedAt timestamp)
+    private func hasEventChanged(existing: CalendarEvent, new: CalendarEvent) -> Bool {
+        return existing.title != new.title ||
+               existing.location != new.location ||
+               existing.notes != new.notes ||
+               existing.startDate != new.startDate ||
+               existing.endDate != new.endDate ||
+               existing.isAllDay != new.isAllDay ||
+               existing.url != new.url ||
+               existing.status != new.status ||
+               existing.lastModifiedDate != new.lastModifiedDate ||
+               existing.creationDate != new.creationDate ||
+               existing.hasRecurrenceRules != new.hasRecurrenceRules ||
+               existing.calendarIdentifier != new.calendarIdentifier ||
+               existing.calendarTitle != new.calendarTitle
     }
 } 

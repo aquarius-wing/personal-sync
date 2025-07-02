@@ -17,8 +17,8 @@ class CalendarSyncDemo {
             enableNotificationSync: true,
             enableBackgroundSync: false, // Disable for demo
             autoStart: false, // Manual start for demo
-            enableLogging: true,
-            syncInterval: 600
+            syncInterval: 600,
+            enableLogging: true
         )
         
         print(config.description)
