@@ -24,6 +24,9 @@ class CalendarSyncIntegrationTests: XCTestCase {
     
     override func tearDownWithError() throws {
         calendarSync?.stopSync()
+        // Clear callbacks to prevent retain cycles
+        calendarSync?.onSyncStatusChanged = nil
+        calendarSync?.onEventUpdated = nil
         calendarSync = nil
         mockEventStore = nil
     }
@@ -57,38 +60,45 @@ class CalendarSyncIntegrationTests: XCTestCase {
         // 3. 创建并启动同步
         calendarSync = try CalendarSync(configuration: testConfiguration, eventStore: mockEventStore)
         
-        // 4. 监听同步状态变化
-        var syncStatusChanges: [SyncStatus] = []
+        // 4. 启动同步（测试模式，跳过权限检查）
+        calendarSync.startSyncForTesting()
+        
+        // 5. 执行初始同步并验证
+        print("\n执行初始同步...")
+        var syncCallbackCount = 0
         let initialSyncExpectation = expectation(description: "Initial sync completed")
         
         calendarSync.onSyncStatusChanged = { status in
-            syncStatusChanges.append(status)
             print("同步状态变化: \(status)")
-            
             if case .synced = status {
-                initialSyncExpectation.fulfill()
+                syncCallbackCount += 1
+                // Only fulfill once to avoid multiple fulfillment
+                if syncCallbackCount == 1 {
+                    initialSyncExpectation.fulfill()
+                }
             }
         }
         
-        // 5. 启动同步并注入 mock 数据
-        calendarSync.startSync()
         try calendarSync.syncWithMockEvents(mockEventStore.getMockEvents())
-        
         wait(for: [initialSyncExpectation], timeout: 5.0)
         
         // 6. 验证初始同步结果
         let syncedEvents = try calendarSync.getAllEvents()
-        XCTAssertEqual(syncedEvents.count, 2)
-        XCTAssertTrue(syncedEvents.contains { $0.title == "项目会议" })
-        XCTAssertTrue(syncedEvents.contains { $0.title == "午餐约会" })
+        XCTAssertEqual(syncedEvents.count, 2, "应该有2个同步的事件")
+        XCTAssertTrue(syncedEvents.contains { $0.title == "项目会议" }, "应该包含项目会议")
+        XCTAssertTrue(syncedEvents.contains { $0.title == "午餐约会" }, "应该包含午餐约会")
         
         // 7. 模拟日历更新：添加新事件
         print("\n模拟添加新事件...")
+        syncCallbackCount = 0
         let updateSyncExpectation = expectation(description: "Update sync completed")
         
         calendarSync.onSyncStatusChanged = { status in
             if case .synced = status {
-                updateSyncExpectation.fulfill()
+                syncCallbackCount += 1
+                if syncCallbackCount == 1 {
+                    updateSyncExpectation.fulfill()
+                }
             }
         }
         
@@ -100,25 +110,26 @@ class CalendarSyncIntegrationTests: XCTestCase {
             calendar: workCalendar
         )
         
-        // 模拟通知触发同步
-        mockEventStore.simulateCalendarChange()
         try calendarSync.syncWithMockEvents(mockEventStore.getMockEvents())
-        
         wait(for: [updateSyncExpectation], timeout: 5.0)
         
         // 8. 验证新事件已同步
         let updatedEvents = try calendarSync.getAllEvents()
-        XCTAssertEqual(updatedEvents.count, 3)
-        XCTAssertTrue(updatedEvents.contains { $0.title == "紧急会议" })
+        XCTAssertEqual(updatedEvents.count, 3, "应该有3个事件")
+        XCTAssertTrue(updatedEvents.contains { $0.title == "紧急会议" }, "应该包含紧急会议")
         
         // 9. 模拟事件更新
         print("\n模拟更新事件...")
+        syncCallbackCount = 0
         mockEventStore.updateMockEvent(identifier: "meeting-1", newTitle: "项目会议 (已更新)")
         
         let modifySyncExpectation = expectation(description: "Modify sync completed")
         calendarSync.onSyncStatusChanged = { status in
             if case .synced = status {
-                modifySyncExpectation.fulfill()
+                syncCallbackCount += 1
+                if syncCallbackCount == 1 {
+                    modifySyncExpectation.fulfill()
+                }
             }
         }
         
@@ -127,17 +138,21 @@ class CalendarSyncIntegrationTests: XCTestCase {
         
         // 10. 验证事件更新
         let modifiedEvents = try calendarSync.getAllEvents()
-        XCTAssertTrue(modifiedEvents.contains { $0.title == "项目会议 (已更新)" })
-        XCTAssertFalse(modifiedEvents.contains { $0.title == "项目会议" })
+        XCTAssertTrue(modifiedEvents.contains { $0.title == "项目会议 (已更新)" }, "应该包含更新后的会议标题")
+        XCTAssertFalse(modifiedEvents.contains { $0.title == "项目会议" }, "不应该包含旧的会议标题")
         
         // 11. 模拟事件删除
         print("\n模拟删除事件...")
+        syncCallbackCount = 0
         mockEventStore.removeMockEvent(identifier: "lunch-1")
         
         let deleteSyncExpectation = expectation(description: "Delete sync completed")
         calendarSync.onSyncStatusChanged = { status in
             if case .synced = status {
-                deleteSyncExpectation.fulfill()
+                syncCallbackCount += 1
+                if syncCallbackCount == 1 {
+                    deleteSyncExpectation.fulfill()
+                }
             }
         }
         
@@ -146,8 +161,8 @@ class CalendarSyncIntegrationTests: XCTestCase {
         
         // 12. 验证事件删除
         let finalEvents = try calendarSync.getAllEvents()
-        XCTAssertEqual(finalEvents.count, 2)
-        XCTAssertFalse(finalEvents.contains { $0.title == "午餐约会" })
+        XCTAssertEqual(finalEvents.count, 2, "删除后应该有2个事件")
+        XCTAssertFalse(finalEvents.contains { $0.title == "午餐约会" }, "不应该包含已删除的午餐约会")
         
         print("\n✅ 完整的日历同步流程测试通过！")
         print("最终事件数量: \(finalEvents.count)")
@@ -177,7 +192,7 @@ class CalendarSyncIntegrationTests: XCTestCase {
             print("📱 收到日历变化通知")
         }
         
-        calendarSync.startSync()
+        calendarSync.startSyncForTesting()
         
         // 模拟日历变化
         mockEventStore.addMockEvent(

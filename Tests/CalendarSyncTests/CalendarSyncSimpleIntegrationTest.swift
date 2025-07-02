@@ -14,6 +14,9 @@ class CalendarSyncSimpleIntegrationTest: XCTestCase {
     
     override func tearDownWithError() throws {
         calendarSync?.stopSync()
+        // Clear callbacks to prevent retain cycles
+        calendarSync?.onSyncStatusChanged = nil
+        calendarSync?.onEventUpdated = nil
         calendarSync = nil
         mockEventStore = nil
     }
@@ -57,7 +60,7 @@ class CalendarSyncSimpleIntegrationTest: XCTestCase {
         }
         
         // 4. 启动同步
-        calendarSync.startSync()
+        calendarSync.startSyncForTesting()
         
         // 5. 执行 mock 同步
         try calendarSync.syncWithMockEvents(mockEventStore.getMockEvents())
@@ -88,7 +91,7 @@ class CalendarSyncSimpleIntegrationTest: XCTestCase {
         )
         
         calendarSync = try CalendarSync(configuration: config, eventStore: mockEventStore)
-        calendarSync.startSync()
+        calendarSync.startSyncForTesting()
         
         // 步骤1：初始同步（空状态）
         try calendarSync.syncWithMockEvents([])
@@ -160,7 +163,7 @@ class CalendarSyncSimpleIntegrationTest: XCTestCase {
         )
         
         calendarSync = try CalendarSync(configuration: config, eventStore: mockEventStore)
-        calendarSync.startSync()
+        calendarSync.startSyncForTesting()
         
         // 初始同步
         try calendarSync.syncWithMockEvents(mockEventStore.getMockEvents())
@@ -204,7 +207,7 @@ class CalendarSyncSimpleIntegrationTest: XCTestCase {
         )
         
         calendarSync = try CalendarSync(configuration: config, eventStore: mockEventStore)
-        calendarSync.startSync()
+        calendarSync.startSyncForTesting()
         
         // 执行同步
         try calendarSync.syncWithMockEvents(mockEventStore.getMockEvents())

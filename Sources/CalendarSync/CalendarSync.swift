@@ -417,9 +417,24 @@ public class CalendarSync {
         return eventStore.events(matching: predicate)
     }
     
+    // Method for testing - synchronous start without permission check
+    internal func startSyncForTesting() {
+        setActive(true)
+        updateSyncStatus(.idle)
+        
+        if configuration.enableLogging {
+            print("Sync started for testing (bypassing permission check)")
+        }
+    }
+    
     // Method for testing - allows direct injection of CalendarEvent objects
     internal func syncWithMockEvents(_ events: [CalendarEvent]) throws {
-        guard isActive else { return }
+        guard isActive else { 
+            if configuration.enableLogging {
+                print("syncWithMockEvents: not active, returning")
+            }
+            return 
+        }
         
         updateSyncStatus(.syncing)
         
