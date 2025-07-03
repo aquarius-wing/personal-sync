@@ -1,5 +1,6 @@
 import SwiftUI
 import CalendarSync
+import UIKit
 
 struct EventDetailView: View {
     let event: CalendarEvent
@@ -22,7 +23,7 @@ struct EventDetailView: View {
                 }
                 .padding(20)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle("Event Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

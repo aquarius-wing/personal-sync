@@ -1,70 +1,48 @@
 import SwiftUI
 import CalendarSync
 
+enum TimeFilter: CaseIterable {
+    case all, today, week, month, upcoming
+    
+    var title: String {
+        switch self {
+        case .all: return "All"
+        case .today: return "Today"
+        case .week: return "This Week"
+        case .month: return "This Month"
+        case .upcoming: return "Upcoming"
+        }
+    }
+    
+    var icon: String {
+        switch self {
+        case .all: return "calendar"
+        case .today: return "calendar.badge.clock"
+        case .week: return "calendar.badge.plus"
+        case .month: return "calendar.circle"
+        case .upcoming: return "calendar.badge.plus"
+        }
+    }
+}
+
 struct EventsListView: View {
     @EnvironmentObject var manager: CalendarSyncManager
     @Environment(\.dismiss) private var dismiss
     
     @State private var searchText = ""
     @State private var selectedTimeFilter: TimeFilter = .all
-    @State private var showingEventDetail = false
     @State private var selectedEvent: CalendarEvent?
-    
-    enum TimeFilter: String, CaseIterable {
-        case all = "All"
-        case today = "Today"
-        case week = "This Week"
-        case month = "This Month"
-        case upcoming = "Upcoming"
-        
-        var icon: String {
-            switch self {
-            case .all: return "calendar"
-            case .today: return "calendar.badge.clock"
-            case .week: return "calendar.badge.minus"
-            case .month: return "calendar.circle"
-            case .upcoming: return "calendar.badge.plus"
-            }
-        }
-    }
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Search and Filter Section
-                VStack(spacing: 16) {
-                    // Search Bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
-                        
-                        TextField("Search events...", text: $searchText)
-                            .textFieldStyle(.plain)
-                    }
-                    .padding(12)
-                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
-                    
-                    // Time Filter Pills
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(TimeFilter.allCases, id: \.self) { filter in
-                                FilterPill(
-                                    title: filter.rawValue,
-                                    icon: filter.icon,
-                                    isSelected: selectedTimeFilter == filter
-                                ) {
-                                    selectedTimeFilter = filter
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(.regularMaterial)
+                // Search bar
+                searchSection
                 
-                // Events List
+                // Filter pills
+                filterSection
+                
+                // Events list
                 if filteredEvents.isEmpty {
                     emptyStateView
                 } else {
@@ -93,6 +71,34 @@ struct EventsListView: View {
         .sheet(item: $selectedEvent) { event in
             EventDetailView(event: event)
         }
+        .searchable(text: $searchText, prompt: "Search events...")
+    }
+    
+    private var searchSection: some View {
+        VStack(spacing: 0) {
+            // Search bar on iOS is handled by searchable modifier
+            EmptyView()
+        }
+    }
+    
+    private var filterSection: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(TimeFilter.allCases, id: \.self) { filter in
+                    FilterPill(
+                        title: filter.title,
+                        icon: filter.icon,
+                        isSelected: selectedTimeFilter == filter,
+                        action: {
+                            selectedTimeFilter = filter
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+        }
+        .background(.regularMaterial)
     }
     
     private var eventsList: some View {
@@ -102,7 +108,6 @@ struct EventsListView: View {
                     ForEach(groupedEvents[date] ?? [], id: \.eventIdentifier) { event in
                         EventListRowView(event: event) {
                             selectedEvent = event
-                            showingEventDetail = true
                         }
                     }
                 } header: {
@@ -216,7 +221,6 @@ struct EventsListView: View {
     
     private func formatSectionDate(_ date: Date) -> String {
         let calendar = Calendar.current
-        let now = Date()
         
         if calendar.isDateInToday(date) {
             return "Today"
@@ -273,7 +277,7 @@ struct EventListRowView: View {
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 12) {
-                // Time and status indicator
+                // Time indicator
                 VStack(alignment: .leading, spacing: 4) {
                     if event.isAllDay {
                         Text("ALL DAY")
@@ -295,7 +299,7 @@ struct EventListRowView: View {
                 }
                 .frame(width: 60, alignment: .leading)
                 
-                // Event content
+                // Event details
                 VStack(alignment: .leading, spacing: 6) {
                     Text(event.title ?? "Untitled Event")
                         .font(.body)
@@ -329,6 +333,7 @@ struct EventListRowView: View {
                             HStack(spacing: 2) {
                                 Image(systemName: "repeat")
                                     .font(.caption2)
+                                
                                 Text("Recurring")
                                     .font(.caption2)
                             }
@@ -351,9 +356,11 @@ struct EventListRowView: View {
 
 // MARK: - Extensions
 
-extension CalendarEvent: Identifiable {
+extension CalendarEvent: @retroactive Identifiable {
     public var id: String { eventIdentifier }
 }
+
+extension TimeFilter: Hashable {}
 
 #Preview {
     EventsListView()

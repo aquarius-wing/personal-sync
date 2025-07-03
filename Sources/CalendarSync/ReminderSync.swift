@@ -55,6 +55,23 @@ public enum ReminderSyncStatus {
     }
 }
 
+extension ReminderSyncStatus: Equatable {
+    public static func == (lhs: ReminderSyncStatus, rhs: ReminderSyncStatus) -> Bool {
+        switch (lhs, rhs) {
+        case (.idle, .idle):
+            return true
+        case (.syncing, .syncing):
+            return true
+        case (.synced, .synced):
+            return true
+        case (.error(let lhsError), .error(let rhsError)):
+            return lhsError.localizedDescription == rhsError.localizedDescription
+        default:
+            return false
+        }
+    }
+}
+
 /// Reminder sync statistics
 public struct ReminderSyncStatistics {
     public var totalReminders: Int = 0

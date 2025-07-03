@@ -1,0 +1,38 @@
+name: CalendarSyncDashboard
+
+options:
+  bundleIdPrefix: com.calendarsync
+  deploymentTarget:
+    iOS: "16.0"
+  groupSortPosition: top
+  xcodeVersion: "15.0"
+
+packages:
+  CalendarSync:
+    path: ../../
+
+targets:
+  CalendarSyncDashboard:
+    type: application
+    platform: iOS
+    sources:
+      - Sources/CalendarSyncDashboard
+    resources:
+      - Sources/CalendarSyncDashboard/Assets.xcassets
+      - Sources/CalendarSyncDashboard/Preview Content
+    dependencies:
+      - package: CalendarSync
+        product: CalendarSync
+    settings:
+      base:
+        INFOPLIST_FILE: Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.calendarsync.dashboard
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: false
+    scheme:
+      testTargets: []
+      gatherCoverageData: false
+      commandLineArguments: {}
+      environmentVariables: {} 
