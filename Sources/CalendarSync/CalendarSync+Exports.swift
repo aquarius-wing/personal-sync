@@ -11,4 +11,11 @@ public typealias CalendarSyncConfigurationType = CalendarSyncConfiguration
 public typealias SyncStatusType = SyncStatus
 public typealias SyncStatisticsType = SyncStatistics
 public typealias CalendarSyncErrorType = CalendarSyncError
-public typealias UpdateTypeType = UpdateType 
+public typealias UpdateTypeType = UpdateType
+
+// Reminder sync types
+public typealias ReminderSyncType = ReminderSync
+public typealias ReminderEventType = ReminderEvent
+public typealias ReminderSyncStatusType = ReminderSyncStatus
+public typealias ReminderSyncStatisticsType = ReminderSyncStatistics
+public typealias ReminderUpdateTypeType = ReminderUpdateType 
