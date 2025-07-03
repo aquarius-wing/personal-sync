@@ -4,8 +4,7 @@ import PackageDescription
 let package = Package(
     name: "CalendarSyncDashboard",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v10_15)
+        .iOS(.v16)
     ],
     dependencies: [
         .package(path: "../../")  // Reference to the main CalendarSync package

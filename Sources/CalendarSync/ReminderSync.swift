@@ -82,6 +82,11 @@ public struct ReminderSyncStatistics {
     public var syncDuration: TimeInterval = 0
     public var listsCount: Int = 0
     
+    // Detailed sync statistics
+    public var lastInserted: Int = 0
+    public var lastUpdated: Int = 0
+    public var lastDeleted: Int = 0
+    
     public init() {}
 }
 
@@ -367,7 +372,7 @@ public class ReminderSync {
             updateSyncStatus(.syncing)
             
             if configuration.enableLogging {
-                print("Starting reminder sync...")
+                print("[ReminderSync] Starting reminder sync...")
             }
             
             // Get reminder lists
@@ -388,17 +393,28 @@ public class ReminderSync {
             // Convert to ReminderEvent objects
             let reminderEvents = systemReminders.map { ReminderEvent(from: $0, syncedAt: Date()) }
             
-            // Save to database
-            let savedCount = try databaseManager.saveReminders(reminderEvents)
+            // Get existing reminders from database to determine what was removed
+            let existingReminders = try databaseManager.getAllReminders()
+            let existingIdentifiers = Set(existingReminders.map { $0.reminderIdentifier })
+            let systemIdentifiers = Set(reminderEvents.map { $0.reminderIdentifier })
+            
+            // Find reminders to delete (no longer in system)
+            let remindersToDelete = existingIdentifiers.subtracting(systemIdentifiers)
+            
+            // Sync with database using detailed method
+            let syncResult = try databaseManager.syncReminders(
+                reminderEvents,
+                removedIdentifiers: Array(remindersToDelete)
+            )
             
             // Update statistics
-            updateStatistics(savedCount: savedCount, syncDuration: Date().timeIntervalSince(startTime))
+            updateStatistics(syncResult: syncResult, syncDuration: Date().timeIntervalSince(startTime))
             
             updateSyncStatus(.synced)
             retryCount = 0
             
             if configuration.enableLogging {
-                print("Reminder sync completed. Saved \(savedCount) reminders.")
+                print("[ReminderSync] Sync completed: \(syncResult.inserted) inserted, \(syncResult.updated) updated, \(syncResult.deleted) deleted")
             }
             
         } catch {
@@ -441,7 +457,7 @@ public class ReminderSync {
     }
     
     /// Update statistics
-    private func updateStatistics(savedCount: Int, syncDuration: TimeInterval) {
+    private func updateStatistics(syncResult: (inserted: Int, updated: Int, deleted: Int), syncDuration: TimeInterval) {
         statisticsQueue.async(flags: .barrier) { [weak self] in
             guard let self = self else { return }
             
@@ -461,12 +477,21 @@ public class ReminderSync {
                 self._syncStatistics.syncDuration = syncDuration
                 self._syncStatistics.listsCount = listsCount
                 
+                // Store detailed sync statistics
+                self._syncStatistics.lastInserted = syncResult.inserted
+                self._syncStatistics.lastUpdated = syncResult.updated
+                self._syncStatistics.lastDeleted = syncResult.deleted
+                
                 // Save sync time to database
                 try self.databaseManager.saveLastReminderSyncTime(Date())
                 
+                if self.configuration.enableLogging {
+                    print("[ReminderSync] Statistics updated: Total: \(totalReminders), Completed: \(completedReminders), Overdue: \(overdueReminders)")
+                }
+                
             } catch {
                 if self.configuration.enableLogging {
-                    print("Failed to update reminder statistics: \(error)")
+                    print("[ReminderSync] Failed to update reminder statistics: \(error)")
                 }
             }
         }

@@ -342,6 +342,8 @@ public class CalendarSync {
             let uniqueCalendarEvents = Array(uniqueEvents.values)
             
             if configuration.enableLogging && calendarEvents.count != uniqueCalendarEvents.count {
+                // like Duplicate event found: Optional("Daylight Saving Time") (ID: 2C64CD39-6DC5-43BF-8385-CA37D4A4AD6D:ae6b7e55-6e69-330d-a1e3-1222d461e6f7)
+                // Duplicate event found: Optional("Daylight Saving Time") (ID: 2C64CD39-6DC5-43BF-8385-CA37D4A4AD6D:ae6b7e55-6e69-330d-a1e3-1222d461e6f7)
                 print("Removed \(calendarEvents.count - uniqueCalendarEvents.count) duplicate events")
             }
             
@@ -385,7 +387,7 @@ public class CalendarSync {
             updateSyncStatus(.synced(totalEvents))
             
             if configuration.enableLogging {
-                print("Sync completed: \(syncResult.inserted) inserted, \(syncResult.updated) updated, \(syncResult.deleted) deleted")
+                print("[CalendarSync] Sync completed: \(syncResult.inserted) inserted, \(syncResult.updated) updated, \(syncResult.deleted) deleted")
             }
             
         } catch {

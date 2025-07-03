@@ -269,7 +269,7 @@ internal class DatabaseManager {
             var updated = 0
             
             if configuration.enableLogging {
-                print("Starting sync with \(newEvents.count) events from system")
+                print("[CalendarSync] Starting sync with \(newEvents.count) events from system")
             }
             
             // Insert or update events
@@ -297,7 +297,7 @@ internal class DatabaseManager {
                     inserted += 1
                     
                     if configuration.enableLogging {
-                        print("Inserted new event: \(event.eventIdentifier)")
+                        print("[CalendarSync] Inserted new event: \(event.eventIdentifier)")
                     }
                 }
             }
@@ -606,7 +606,7 @@ internal class DatabaseManager {
             var updated = 0
             
             if configuration.enableLogging {
-                print("Starting reminder sync with \(newReminders.count) reminders from system")
+                print("[ReminderSync] Starting reminder sync with \(newReminders.count) reminders from system")
             }
             
             // Insert or update reminders
@@ -634,7 +634,7 @@ internal class DatabaseManager {
                     inserted += 1
                     
                     if configuration.enableLogging {
-                        print("Inserted new reminder: \(reminder.reminderIdentifier)")
+                        print("[ReminderSync] Inserted new reminder: \(reminder.reminderIdentifier)")
                     }
                 }
             }
