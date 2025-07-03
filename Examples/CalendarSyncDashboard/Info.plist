@@ -61,6 +61,10 @@
 	<string>This app needs access to your calendar to sync and display your events in a beautiful dashboard interface.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>This app requires full calendar access to read your events and provide real-time synchronization with the CalendarSync library.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>This app needs access to your reminders to sync and display your reminders in a beautiful dashboard interface.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>This app requires full reminders access to read your reminders and provide real-time synchronization with the CalendarSync library.</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>

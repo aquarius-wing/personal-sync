@@ -1,6 +1,8 @@
 import SwiftUI
 import CalendarSync
+#if canImport(UIKit)
 import UIKit
+#endif
 
 struct CalendarView: View {
     @EnvironmentObject var manager: CalendarSyncManager
@@ -10,8 +12,12 @@ struct CalendarView: View {
         NavigationView {
             ZStack {
                 // Background
-                Color(UIColor.systemGroupedBackground)
-                    .ignoresSafeArea()
+                #if os(iOS)
+                Color(UIColor.systemGroupedBackground) .ignoresSafeArea()
+                #else
+                Color(.windowBackground) .ignoresSafeArea()
+                #endif
+                   
                 
                 if manager.isInitialized {
                     mainContent
