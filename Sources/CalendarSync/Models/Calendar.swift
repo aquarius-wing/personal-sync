@@ -10,17 +10,20 @@ public struct CalendarInfo: Codable {
     /// Calendar title/name
     public let title: String
     
-    /// Calendar type (local, exchange, caldav, etc.)
+    /// Calendar entity type (.event or .reminder)
     public let type: String
+    
+    /// Calendar source (iCloud, Local, Google, etc.)
+    public let source: String
     
     /// Calendar color represented as hex string (e.g., "#FF0000")
     public let color: String?
     
+    /// Whether the calendar allows content modifications
+    public let allowsContentModifications: Bool
+    
     /// Whether the calendar is subscribed (read-only)
     public let isSubscribed: Bool
-    
-    /// Whether the calendar supports events
-    public let allowsContentModifications: Bool
     
     /// Calendar source identifier
     public let sourceIdentifier: String?
@@ -28,7 +31,7 @@ public struct CalendarInfo: Codable {
     /// Calendar source title
     public let sourceTitle: String?
     
-    /// Calendar source type
+    /// Calendar source type for internal use
     public let sourceType: String?
     
     /// When this calendar was last synchronized
@@ -43,10 +46,11 @@ public struct CalendarInfo: Codable {
     // MARK: - Initialization
     
     /// Initialize Calendar from EKCalendar
-    public init(from ekCalendar: EKCalendar) {
+    public init(from ekCalendar: EKCalendar, entityType: EKEntityType = .event) {
         self.calendarIdentifier = ekCalendar.calendarIdentifier
         self.title = ekCalendar.title
-        self.type = CalendarInfo.calendarTypeString(from: ekCalendar.type)
+        self.type = CalendarInfo.entityTypeString(from: entityType)
+        self.source = CalendarInfo.calendarSourceString(from: ekCalendar.source?.sourceType)
         
         // Convert CGColor to hex string
         if #available(macOS 10.15, *), let cgColor = ekCalendar.cgColor {
@@ -55,8 +59,8 @@ public struct CalendarInfo: Codable {
             self.color = nil
         }
         
-        self.isSubscribed = ekCalendar.isSubscribed
         self.allowsContentModifications = ekCalendar.allowsContentModifications
+        self.isSubscribed = ekCalendar.isSubscribed
         self.sourceIdentifier = ekCalendar.source?.sourceIdentifier
         self.sourceTitle = ekCalendar.source?.title
         self.sourceType = CalendarInfo.sourceTypeString(from: ekCalendar.source?.sourceType)
@@ -70,9 +74,10 @@ public struct CalendarInfo: Codable {
         calendarIdentifier: String,
         title: String,
         type: String,
+        source: String,
         color: String? = nil,
-        isSubscribed: Bool = false,
         allowsContentModifications: Bool = true,
+        isSubscribed: Bool = false,
         sourceIdentifier: String? = nil,
         sourceTitle: String? = nil,
         sourceType: String? = nil,
@@ -83,9 +88,10 @@ public struct CalendarInfo: Codable {
         self.calendarIdentifier = calendarIdentifier
         self.title = title
         self.type = type
+        self.source = source
         self.color = color
-        self.isSubscribed = isSubscribed
         self.allowsContentModifications = allowsContentModifications
+        self.isSubscribed = isSubscribed
         self.sourceIdentifier = sourceIdentifier
         self.sourceTitle = sourceTitle
         self.sourceType = sourceType
@@ -96,25 +102,41 @@ public struct CalendarInfo: Codable {
     
     // MARK: - Helper Methods
     
-    /// Convert EKCalendarType to string
-    private static func calendarTypeString(from type: EKCalendarType) -> String {
+    /// Convert EKEntityType to string
+    private static func entityTypeString(from type: EKEntityType) -> String {
         switch type {
-        case .local:
-            return "local"
-        case .calDAV:
-            return "caldav"
-        case .exchange:
-            return "exchange"
-        case .subscription:
-            return "subscription"
-        case .birthday:
-            return "birthday"
+        case .event:
+            return "event"
+        case .reminder:
+            return "reminder"
         @unknown default:
-            return "unknown"
+            return "event"
         }
     }
     
-    /// Convert EKSourceType to string
+    /// Convert EKSourceType to user-friendly source string
+    private static func calendarSourceString(from type: EKSourceType?) -> String {
+        guard let type = type else { return "Local" }
+        
+        switch type {
+        case .local:
+            return "Local"
+        case .exchange:
+            return "Exchange"
+        case .calDAV:
+            return "CalDAV"
+        case .mobileMe:
+            return "iCloud"
+        case .subscribed:
+            return "Subscribed"
+        case .birthdays:
+            return "Birthdays"
+        @unknown default:
+            return "Unknown"
+        }
+    }
+    
+    /// Convert EKSourceType to string for internal use
     private static func sourceTypeString(from type: EKSourceType?) -> String? {
         guard let type = type else { return nil }
         
@@ -161,9 +183,10 @@ extension CalendarInfo: TableRecord, FetchableRecord, PersistableRecord {
         public static let calendarIdentifier = Column(CodingKeys.calendarIdentifier)
         public static let title = Column(CodingKeys.title)
         public static let type = Column(CodingKeys.type)
+        public static let source = Column(CodingKeys.source)
         public static let color = Column(CodingKeys.color)
-        public static let isSubscribed = Column(CodingKeys.isSubscribed)
         public static let allowsContentModifications = Column(CodingKeys.allowsContentModifications)
+        public static let isSubscribed = Column(CodingKeys.isSubscribed)
         public static let sourceIdentifier = Column(CodingKeys.sourceIdentifier)
         public static let sourceTitle = Column(CodingKeys.sourceTitle)
         public static let sourceType = Column(CodingKeys.sourceType)
@@ -178,9 +201,10 @@ extension CalendarInfo: TableRecord, FetchableRecord, PersistableRecord {
             t.column(Columns.calendarIdentifier.name, .text).primaryKey()
             t.column(Columns.title.name, .text).notNull()
             t.column(Columns.type.name, .text).notNull()
+            t.column(Columns.source.name, .text).notNull()
             t.column(Columns.color.name, .text)
-            t.column(Columns.isSubscribed.name, .boolean).notNull().defaults(to: false)
             t.column(Columns.allowsContentModifications.name, .boolean).notNull().defaults(to: true)
+            t.column(Columns.isSubscribed.name, .boolean).notNull().defaults(to: false)
             t.column(Columns.sourceIdentifier.name, .text)
             t.column(Columns.sourceTitle.name, .text)
             t.column(Columns.sourceType.name, .text)
@@ -199,9 +223,19 @@ extension CalendarInfo {
         return CalendarInfo.order(Columns.title)
     }
     
-    /// Get calendars by type
+    /// Get calendars by entity type (event or reminder)
     public static func calendarsByType(_ type: String) -> QueryInterfaceRequest<CalendarInfo> {
         return CalendarInfo.filter(Columns.type == type).order(Columns.title)
+    }
+    
+    /// Get event calendars
+    public static func eventCalendars() -> QueryInterfaceRequest<CalendarInfo> {
+        return CalendarInfo.filter(Columns.type == "event").order(Columns.title)
+    }
+    
+    /// Get reminder calendars
+    public static func reminderCalendars() -> QueryInterfaceRequest<CalendarInfo> {
+        return CalendarInfo.filter(Columns.type == "reminder").order(Columns.title)
     }
     
     /// Get calendars that allow modifications
@@ -223,7 +257,14 @@ extension CalendarInfo {
     }
     
     /// Get calendars by source
-    public static func calendarsBySource(_ sourceIdentifier: String) -> QueryInterfaceRequest<CalendarInfo> {
+    public static func calendarsBySource(_ source: String) -> QueryInterfaceRequest<CalendarInfo> {
+        return CalendarInfo
+            .filter(Columns.source == source)
+            .order(Columns.title)
+    }
+    
+    /// Get calendars by source identifier
+    public static func calendarsBySourceIdentifier(_ sourceIdentifier: String) -> QueryInterfaceRequest<CalendarInfo> {
         return CalendarInfo
             .filter(Columns.sourceIdentifier == sourceIdentifier)
             .order(Columns.title)
@@ -237,9 +278,10 @@ extension CalendarInfo: Equatable {
         return lhs.calendarIdentifier == rhs.calendarIdentifier &&
                lhs.title == rhs.title &&
                lhs.type == rhs.type &&
+               lhs.source == rhs.source &&
                lhs.color == rhs.color &&
-               lhs.isSubscribed == rhs.isSubscribed &&
                lhs.allowsContentModifications == rhs.allowsContentModifications &&
+               lhs.isSubscribed == rhs.isSubscribed &&
                lhs.sourceIdentifier == rhs.sourceIdentifier &&
                lhs.sourceTitle == rhs.sourceTitle &&
                lhs.sourceType == rhs.sourceType
@@ -250,6 +292,6 @@ extension CalendarInfo: Equatable {
 
 extension CalendarInfo: CustomStringConvertible {
     public var description: String {
-        return "Calendar(identifier: \(calendarIdentifier), title: \(title), type: \(type))"
+        return "Calendar(identifier: \(calendarIdentifier), title: \(title), type: \(type), source: \(source))"
     }
 } 
