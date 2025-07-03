@@ -1,6 +1,5 @@
 import SwiftUI
 import CalendarSync
-import UIKit
 
 struct RemindersView: View {
     @EnvironmentObject var manager: ReminderSyncManager
@@ -10,7 +9,7 @@ struct RemindersView: View {
         NavigationView {
             ZStack {
                 // Background
-                Color(UIColor.systemGroupedBackground)
+                Color.clear
                     .ignoresSafeArea()
                 
                 if manager.isInitialized {
@@ -22,7 +21,7 @@ struct RemindersView: View {
                 }
             }
             .navigationTitle("Reminders")
-            .navigationBarTitleDisplayMode(.large)
+
             .refreshable {
                 manager.loadReminders()
             }
@@ -421,9 +420,8 @@ struct RemindersListView: View {
                 }
             }
             .navigationTitle("All Reminders")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button("Done") {
                         dismiss()
                     }

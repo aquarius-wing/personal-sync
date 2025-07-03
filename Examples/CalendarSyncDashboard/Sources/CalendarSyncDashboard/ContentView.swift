@@ -1,6 +1,5 @@
 import SwiftUI
 import CalendarSync
-import UIKit
 
 struct CalendarView: View {
     @EnvironmentObject var manager: CalendarSyncManager
@@ -10,7 +9,7 @@ struct CalendarView: View {
         NavigationView {
             ZStack {
                 // Background
-                Color(UIColor.systemGroupedBackground)
+                Color.clear
                     .ignoresSafeArea()
                    
                 
@@ -23,7 +22,7 @@ struct CalendarView: View {
                 }
             }
             .navigationTitle("Calendar Sync")
-            .navigationBarTitleDisplayMode(.large)
+
             .refreshable {
                 manager.loadEvents()
             }

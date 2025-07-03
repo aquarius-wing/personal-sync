@@ -1,6 +1,5 @@
 import SwiftUI
 import CalendarSync
-import UIKit
 
 struct EventDetailView: View {
     let event: CalendarEvent
@@ -23,11 +22,10 @@ struct EventDetailView: View {
                 }
                 .padding(20)
             }
-            .background(Color(UIColor.systemGroupedBackground))
+            .background(.regularMaterial)
             .navigationTitle("Event Details")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button("Done") {
                         dismiss()
                     }
@@ -345,6 +343,11 @@ struct InfoRow: View {
         creationDate: Date().addingTimeInterval(-172800),
         status: .confirmed,
         hasRecurrenceRules: true,
+        timeZone: "America/New_York",
+        recurrenceRule: nil,
+        hasAlarms: false,
+        attendeesJson: nil,
+        isDetached: false,
         syncedAt: Date()
     )
     

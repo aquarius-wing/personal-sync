@@ -144,7 +144,7 @@ public struct CalendarEvent {
             let attendeeData = attendees.map { attendee in
                 return [
                     "name": attendee.name,
-                    "url": attendee.url?.absoluteString,
+                    "url": attendee.url.absoluteString,
                     "participantRole": attendee.participantRole.rawValue,
                     "participantStatus": attendee.participantStatus.rawValue,
                     "participantType": attendee.participantType.rawValue
