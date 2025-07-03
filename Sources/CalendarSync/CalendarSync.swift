@@ -92,6 +92,9 @@ public class CalendarSync {
     /// Event update callback
     public var onEventUpdated: ((CalendarEvent, UpdateType) -> Void)?
     
+    /// Calendar update callback
+    public var onCalendarUpdated: ((CalendarInfo, UpdateType) -> Void)?
+    
     // MARK: - Initialization
     
     /// Initialize with default configuration
@@ -228,6 +231,43 @@ public class CalendarSync {
         return try databaseManager.getEventsByCalendar(calendarIdentifier)
     }
     
+    // MARK: - Calendar Query Methods
+    
+    /// Get all synchronized calendars
+    public func getAllCalendars() throws -> [CalendarInfo] {
+        return try databaseManager.getAllCalendars()
+    }
+    
+    /// Get calendar by identifier
+    public func getCalendar(by identifier: String) throws -> CalendarInfo? {
+        return try databaseManager.getCalendar(by: identifier)
+    }
+    
+    /// Get calendars by type
+    public func getCalendars(byType type: String) throws -> [CalendarInfo] {
+        return try databaseManager.getCalendars(byType: type)
+    }
+    
+    /// Get modifiable calendars
+    public func getModifiableCalendars() throws -> [CalendarInfo] {
+        return try databaseManager.getModifiableCalendars()
+    }
+    
+    /// Get subscribed calendars
+    public func getSubscribedCalendars() throws -> [CalendarInfo] {
+        return try databaseManager.getSubscribedCalendars()
+    }
+    
+    /// Search calendars by keyword
+    public func searchCalendars(keyword: String) throws -> [CalendarInfo] {
+        return try databaseManager.searchCalendars(keyword: keyword)
+    }
+    
+    /// Get calendars by source
+    public func getCalendars(bySource sourceIdentifier: String) throws -> [CalendarInfo] {
+        return try databaseManager.getCalendars(bySource: sourceIdentifier)
+    }
+    
     // MARK: - Private Methods
     
     private func setActive(_ active: Bool) {
@@ -328,6 +368,32 @@ public class CalendarSync {
             // Get calendars to sync
             let calendarsToSync = try getCalendarsToSync()
             
+            // First, sync the calendars themselves
+            let systemCalendars = calendarsToSync.map { CalendarInfo(from: $0) }
+            let existingCalendars = try databaseManager.getAllCalendars()
+            let existingCalendarIds = Set(existingCalendars.map { $0.calendarIdentifier })
+            let systemCalendarIds = Set(systemCalendars.map { $0.calendarIdentifier })
+            
+            // Find calendars to delete (no longer in system)
+            let calendarsToDelete = existingCalendarIds.subtracting(systemCalendarIds)
+            
+            // Sync calendars with database
+            let calendarSyncResult = try databaseManager.syncCalendars(
+                systemCalendars,
+                removedIdentifiers: Array(calendarsToDelete)
+            )
+            
+            if configuration.enableLogging {
+                print("[CalendarSync] Calendar sync completed: \(calendarSyncResult.inserted) inserted, \(calendarSyncResult.updated) updated, \(calendarSyncResult.deleted) deleted")
+            }
+            
+            // Notify about calendar changes
+            notifyCalendarUpdates(
+                inserted: calendarSyncResult.inserted,
+                updated: calendarSyncResult.updated,
+                deleted: calendarSyncResult.deleted
+            )
+            
             // Get events from system calendar
             let systemEvents = try getSystemEvents(from: calendarsToSync)
             
@@ -364,9 +430,11 @@ public class CalendarSync {
             // Update statistics
             let duration = Date().timeIntervalSince(startTime)
             let totalEvents = try databaseManager.getTotalEventCount()
+            let totalCalendars = try databaseManager.getTotalCalendarCount()
             
             let newStats = SyncStatistics(
                 totalEvents: totalEvents,
+                totalCalendars: totalCalendars,
                 lastSyncDuration: duration,
                 successfulSyncs: syncStatistics.successfulSyncs + 1,
                 failedSyncs: syncStatistics.failedSyncs
@@ -460,9 +528,11 @@ public class CalendarSync {
             // Update statistics
             let duration = Date().timeIntervalSince(startTime)
             let totalEvents = try databaseManager.getTotalEventCount()
+            let totalCalendars = try databaseManager.getTotalCalendarCount()
             
             let newStats = SyncStatistics(
                 totalEvents: totalEvents,
+                totalCalendars: totalCalendars,
                 lastSyncDuration: duration,
                 successfulSyncs: syncStatistics.successfulSyncs + 1,
                 failedSyncs: syncStatistics.failedSyncs
@@ -511,6 +581,7 @@ public class CalendarSync {
             
             let newStats = SyncStatistics(
                 totalEvents: syncStatistics.totalEvents,
+                totalCalendars: syncStatistics.totalCalendars,
                 lastSyncDuration: syncStatistics.lastSyncDuration,
                 successfulSyncs: syncStatistics.successfulSyncs,
                 failedSyncs: syncStatistics.failedSyncs + 1
@@ -532,6 +603,16 @@ public class CalendarSync {
             // Placeholder for specific event update notifications
             // In a full implementation, you would track specific events that changed
             // and call self.onEventUpdated?(event, updateType) for each one
+        }
+    }
+    
+    private func notifyCalendarUpdates(inserted: Int, updated: Int, deleted: Int) {
+        // This is a simplified notification - in a real implementation,
+        // you might want to track specific calendars that changed
+        DispatchQueue.main.async {
+            // Placeholder for specific calendar update notifications
+            // In a full implementation, you would track specific calendars that changed
+            // and call self.onCalendarUpdated?(calendar, updateType) for each one
         }
     }
 } 

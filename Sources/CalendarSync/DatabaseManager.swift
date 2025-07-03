@@ -23,6 +23,7 @@ internal class DatabaseManager {
             // Create tables
             try CalendarEvent.createTable(db)
             try ReminderEvent.createTable(db)
+            try CalendarInfo.createTable(db)
             
             // Create indexes for better performance
             try createIndexes(db)
@@ -68,6 +69,22 @@ internal class DatabaseManager {
         try db.execute(sql: """
             CREATE INDEX IF NOT EXISTS idx_reminder_events_priority 
             ON reminder_events(priority)
+        """)
+        
+        // Calendar indexes
+        try db.execute(sql: """
+            CREATE INDEX IF NOT EXISTS idx_calendars_type 
+            ON calendars(type)
+        """)
+        
+        try db.execute(sql: """
+            CREATE INDEX IF NOT EXISTS idx_calendars_source_id 
+            ON calendars(sourceIdentifier)
+        """)
+        
+        try db.execute(sql: """
+            CREATE INDEX IF NOT EXISTS idx_calendars_synced_at 
+            ON calendars(syncedAt)
         """)
     }
     
@@ -697,6 +714,248 @@ internal class DatabaseManager {
         
         if hasChanged && configuration.enableLogging {
             print("Reminder \(existing.reminderIdentifier) changed fields: \(changedFields.joined(separator: ", "))")
+        }
+        
+        return hasChanged
+    }
+    
+    // MARK: - Calendar CRUD Operations
+    
+    /// Save calendars to database
+    func saveCalendars(_ calendars: [CalendarInfo]) throws -> Int {
+        return try dbQueue.write { db in
+            var savedCount = 0
+            
+            for calendar in calendars {
+                do {
+                    let mutableCalendar = calendar
+                    try mutableCalendar.save(db)
+                    savedCount += 1
+                } catch {
+                    if configuration.enableLogging {
+                        print("Failed to save calendar \(calendar.calendarIdentifier): \(error)")
+                    }
+                    // Continue with other calendars
+                }
+            }
+            
+            return savedCount
+        }
+    }
+    
+    /// Delete calendars by identifiers
+    func deleteCalendars(with identifiers: [String]) throws -> Int {
+        return try dbQueue.write { db in
+            return try CalendarInfo
+                .filter(identifiers.contains(CalendarInfo.Columns.calendarIdentifier))
+                .deleteAll(db)
+        }
+    }
+    
+    /// Get all calendars
+    func getAllCalendars() throws -> [CalendarInfo] {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .allCalendars()
+                .fetchAll(db)
+        }
+    }
+    
+    /// Get calendar by identifier
+    func getCalendar(by identifier: String) throws -> CalendarInfo? {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .filter(CalendarInfo.Columns.calendarIdentifier == identifier)
+                .fetchOne(db)
+        }
+    }
+    
+    /// Get calendars by type
+    func getCalendars(byType type: String) throws -> [CalendarInfo] {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .calendarsByType(type)
+                .fetchAll(db)
+        }
+    }
+    
+    /// Get modifiable calendars
+    func getModifiableCalendars() throws -> [CalendarInfo] {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .modifiableCalendars()
+                .fetchAll(db)
+        }
+    }
+    
+    /// Get subscribed calendars
+    func getSubscribedCalendars() throws -> [CalendarInfo] {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .subscribedCalendars()
+                .fetchAll(db)
+        }
+    }
+    
+    /// Search calendars by title
+    func searchCalendars(keyword: String) throws -> [CalendarInfo] {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .searchCalendars(keyword: keyword)
+                .fetchAll(db)
+        }
+    }
+    
+    /// Get calendars by source
+    func getCalendars(bySource sourceIdentifier: String) throws -> [CalendarInfo] {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .calendarsBySource(sourceIdentifier)
+                .fetchAll(db)
+        }
+    }
+    
+    /// Check if calendar exists
+    func calendarExists(identifier: String) throws -> Bool {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .filter(CalendarInfo.Columns.calendarIdentifier == identifier)
+                .fetchCount(db) > 0
+        }
+    }
+    
+    // MARK: - Calendar Statistics
+    
+    /// Get total calendar count
+    func getTotalCalendarCount() throws -> Int {
+        return try dbQueue.read { db in
+            return try CalendarInfo.fetchCount(db)
+        }
+    }
+    
+    /// Get calendar count by type
+    func getCalendarCount(byType type: String) throws -> Int {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .filter(CalendarInfo.Columns.type == type)
+                .fetchCount(db)
+        }
+    }
+    
+    /// Get calendar type statistics
+    func getCalendarTypeStats() throws -> [String: Int] {
+        return try dbQueue.read { db in
+            let rows = try Row.fetchAll(db, sql: """
+                SELECT type, COUNT(*) as count 
+                FROM calendars 
+                GROUP BY type
+            """)
+            
+            var stats: [String: Int] = [:]
+            for row in rows {
+                stats[row["type"]] = row["count"]
+            }
+            return stats
+        }
+    }
+    
+    /// Get last calendar sync time
+    func getLastCalendarSyncTime() throws -> Date? {
+        return try dbQueue.read { db in
+            return try CalendarInfo
+                .select(max(CalendarInfo.Columns.syncedAt))
+                .fetchOne(db)
+        }
+    }
+    
+    // MARK: - Calendar Sync Operations
+    
+    /// Sync calendars with database (insert new, update existing, delete removed)
+    func syncCalendars(_ newCalendars: [CalendarInfo], removedIdentifiers: [String] = []) throws -> (inserted: Int, updated: Int, deleted: Int) {
+        return try dbQueue.write { db in
+            var inserted = 0
+            var updated = 0
+            
+            if configuration.enableLogging {
+                print("[CalendarSync] Starting calendar sync with \(newCalendars.count) calendars from system")
+            }
+            
+            // Insert or update calendars
+            for calendar in newCalendars {
+                let existingCalendar = try CalendarInfo
+                    .filter(CalendarInfo.Columns.calendarIdentifier == calendar.calendarIdentifier)
+                    .fetchOne(db)
+                
+                if let existing = existingCalendar {
+                    // Check if calendar actually changed
+                    if hasCalendarChanged(existing: existing, new: calendar) {
+                        var mutableCalendar = calendar
+                        // Update syncedAt to current time for changed calendars
+                        mutableCalendar.syncedAt = Date()
+                        try mutableCalendar.save(db)
+                        updated += 1
+                    }
+                    // If no changes, keep existing calendar as-is (no database update)
+                } else {
+                    // New calendar - insert
+                    var mutableCalendar = calendar
+                    // Set syncedAt to current time for new calendars
+                    mutableCalendar.syncedAt = Date()
+                    try mutableCalendar.save(db)
+                    inserted += 1
+                    
+                    if configuration.enableLogging {
+                        print("[CalendarSync] Inserted new calendar: \(calendar.calendarIdentifier)")
+                    }
+                }
+            }
+            
+            // Delete removed calendars
+            let deleted = try CalendarInfo
+                .filter(removedIdentifiers.contains(CalendarInfo.Columns.calendarIdentifier))
+                .deleteAll(db)
+            
+            if configuration.enableLogging && deleted > 0 {
+                print("Deleted \(deleted) calendars")
+            }
+            
+            return (inserted: inserted, updated: updated, deleted: deleted)
+        }
+    }
+    
+    /// Check if calendar has changed (excluding syncedAt timestamp)
+    private func hasCalendarChanged(existing: CalendarInfo, new: CalendarInfo) -> Bool {
+        var changedFields: [String] = []
+        
+        if existing.title != new.title {
+            changedFields.append("title")
+        }
+        if existing.type != new.type {
+            changedFields.append("type")
+        }
+        if existing.color != new.color {
+            changedFields.append("color")
+        }
+        if existing.isSubscribed != new.isSubscribed {
+            changedFields.append("isSubscribed")
+        }
+        if existing.allowsContentModifications != new.allowsContentModifications {
+            changedFields.append("allowsContentModifications")
+        }
+        if existing.sourceIdentifier != new.sourceIdentifier {
+            changedFields.append("sourceIdentifier")
+        }
+        if existing.sourceTitle != new.sourceTitle {
+            changedFields.append("sourceTitle")
+        }
+        if existing.sourceType != new.sourceType {
+            changedFields.append("sourceType")
+        }
+        
+        let hasChanged = !changedFields.isEmpty
+        
+        if hasChanged && configuration.enableLogging {
+            print("Calendar \(existing.calendarIdentifier) changed fields: \(changedFields.joined(separator: ", "))")
         }
         
         return hasChanged

@@ -46,6 +46,21 @@ public struct CalendarEvent {
     /// Is event recurring
     public let hasRecurrenceRules: Bool
     
+    /// Time zone
+    public let timeZone: String?
+    
+    /// Recurrence rule in JSON format
+    public let recurrenceRule: String?
+    
+    /// Whether the event has alarms
+    public let hasAlarms: Bool
+    
+    /// Attendees in JSON format
+    public let attendeesJson: String?
+    
+    /// Whether this is a detached occurrence of a recurring event
+    public let isDetached: Bool
+    
     /// Sync timestamp
     public var syncedAt: Date
     
@@ -64,6 +79,11 @@ public struct CalendarEvent {
         creationDate: Date?,
         status: EKEventStatus,
         hasRecurrenceRules: Bool,
+        timeZone: String?,
+        recurrenceRule: String?,
+        hasAlarms: Bool,
+        attendeesJson: String?,
+        isDetached: Bool,
         syncedAt: Date = Date()
     ) {
         self.eventIdentifier = eventIdentifier
@@ -80,6 +100,11 @@ public struct CalendarEvent {
         self.creationDate = creationDate
         self.status = status
         self.hasRecurrenceRules = hasRecurrenceRules
+        self.timeZone = timeZone
+        self.recurrenceRule = recurrenceRule
+        self.hasAlarms = hasAlarms
+        self.attendeesJson = attendeesJson
+        self.isDetached = isDetached
         self.syncedAt = syncedAt
     }
     
@@ -94,6 +119,42 @@ public struct CalendarEvent {
         func normalizeOptionalDate(_ date: Date?) -> Date? {
             guard let date = date else { return nil }
             return normalizeDate(date)
+        }
+        
+        // Helper function to convert recurrence rules to JSON
+        func recurrenceRulesToJson(_ rules: [EKRecurrenceRule]?) -> String? {
+            guard let rules = rules, !rules.isEmpty else { return nil }
+            let ruleStrings = rules.map { rule in
+                return [
+                    "frequency": rule.frequency.rawValue,
+                    "interval": rule.interval,
+                    "endDate": rule.recurrenceEnd?.endDate?.timeIntervalSince1970
+                ].compactMapValues { $0 }
+            }
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: ruleStrings),
+                  let jsonString = String(data: jsonData, encoding: .utf8) else {
+                return nil
+            }
+            return jsonString
+        }
+        
+        // Helper function to convert attendees to JSON
+        func attendeesToJson(_ attendees: [EKParticipant]?) -> String? {
+            guard let attendees = attendees, !attendees.isEmpty else { return nil }
+            let attendeeData = attendees.map { attendee in
+                return [
+                    "name": attendee.name,
+                    "url": attendee.url?.absoluteString,
+                    "participantRole": attendee.participantRole.rawValue,
+                    "participantStatus": attendee.participantStatus.rawValue,
+                    "participantType": attendee.participantType.rawValue
+                ].compactMapValues { $0 }
+            }
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: attendeeData),
+                  let jsonString = String(data: jsonData, encoding: .utf8) else {
+                return nil
+            }
+            return jsonString
         }
         
         self.init(
@@ -111,6 +172,11 @@ public struct CalendarEvent {
             creationDate: normalizeOptionalDate(ekEvent.creationDate),
             status: ekEvent.status,
             hasRecurrenceRules: ekEvent.hasRecurrenceRules,
+            timeZone: ekEvent.timeZone?.identifier,
+            recurrenceRule: recurrenceRulesToJson(ekEvent.recurrenceRules),
+            hasAlarms: ekEvent.hasAlarms,
+            attendeesJson: attendeesToJson(ekEvent.attendees),
+            isDetached: ekEvent.isDetached,
             syncedAt: normalizeDate(syncedAt)
         )
     }
@@ -137,6 +203,11 @@ extension CalendarEvent: FetchableRecord, MutablePersistableRecord {
         static let creationDate = Column("creationDate")
         static let status = Column("status")
         static let hasRecurrenceRules = Column("hasRecurrenceRules")
+        static let timeZone = Column("timeZone")
+        static let recurrenceRule = Column("recurrenceRule")
+        static let hasAlarms = Column("hasAlarms")
+        static let attendeesJson = Column("attendeesJson")
+        static let isDetached = Column("isDetached")
         static let syncedAt = Column("syncedAt")
     }
     
@@ -163,6 +234,11 @@ extension CalendarEvent: Codable {
         case creationDate
         case status
         case hasRecurrenceRules
+        case timeZone
+        case recurrenceRule
+        case hasAlarms
+        case attendeesJson
+        case isDetached
         case syncedAt
     }
     
@@ -187,6 +263,11 @@ extension CalendarEvent: Codable {
         status = EKEventStatus(rawValue: statusRawValue) ?? .none
         
         hasRecurrenceRules = try container.decode(Bool.self, forKey: .hasRecurrenceRules)
+        timeZone = try container.decodeIfPresent(String.self, forKey: .timeZone)
+        recurrenceRule = try container.decodeIfPresent(String.self, forKey: .recurrenceRule)
+        hasAlarms = try container.decode(Bool.self, forKey: .hasAlarms)
+        attendeesJson = try container.decodeIfPresent(String.self, forKey: .attendeesJson)
+        isDetached = try container.decode(Bool.self, forKey: .isDetached)
         syncedAt = try container.decode(Date.self, forKey: .syncedAt)
     }
     
@@ -210,6 +291,11 @@ extension CalendarEvent: Codable {
         try container.encode(status.rawValue, forKey: .status)
         
         try container.encode(hasRecurrenceRules, forKey: .hasRecurrenceRules)
+        try container.encodeIfPresent(timeZone, forKey: .timeZone)
+        try container.encodeIfPresent(recurrenceRule, forKey: .recurrenceRule)
+        try container.encode(hasAlarms, forKey: .hasAlarms)
+        try container.encodeIfPresent(attendeesJson, forKey: .attendeesJson)
+        try container.encode(isDetached, forKey: .isDetached)
         try container.encode(syncedAt, forKey: .syncedAt)
     }
 }
@@ -233,6 +319,11 @@ extension CalendarEvent {
             t.column(Columns.creationDate.name, .datetime)
             t.column(Columns.status.name, .integer).notNull()
             t.column(Columns.hasRecurrenceRules.name, .boolean).notNull()
+            t.column(Columns.timeZone.name, .text)
+            t.column(Columns.recurrenceRule.name, .text)
+            t.column(Columns.hasAlarms.name, .boolean).notNull()
+            t.column(Columns.attendeesJson.name, .text)
+            t.column(Columns.isDetached.name, .boolean).notNull()
             t.column(Columns.syncedAt.name, .datetime).notNull().indexed()
         }
     }
