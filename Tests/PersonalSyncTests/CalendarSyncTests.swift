@@ -1,5 +1,5 @@
 import XCTest
-@testable import CalendarSync
+@testable import PersonalSync
 import EventKit
 
 // MARK: - Mock Calendar and Event
@@ -44,7 +44,12 @@ class MockEvent {
             lastModifiedDate: nil,
             creationDate: nil,
             status: .confirmed,
-            hasRecurrenceRules: false
+            hasRecurrenceRules: false,
+            timeZone: nil,
+            recurrenceRule: nil,
+            hasAlarms: false,
+            attendeesJson: nil,
+            isDetached: false
         )
     }
 }
@@ -235,7 +240,12 @@ final class CalendarSyncTests: XCTestCase {
             lastModifiedDate: nil,
             creationDate: nil,
             status: .confirmed,
-            hasRecurrenceRules: false
+            hasRecurrenceRules: false,
+            timeZone: nil,
+            recurrenceRule: nil,
+            hasAlarms: false,
+            attendeesJson: nil,
+            isDetached: false
         )
         
         XCTAssertEqual(event.eventIdentifier, eventId)

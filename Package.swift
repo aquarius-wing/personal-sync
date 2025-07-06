@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "CalendarSync",
+    name: "PersonalSync",
     platforms: [
         .iOS(.v13),
         .macOS(.v10_15)
@@ -12,7 +12,7 @@ let package = Package(
     products: [
         .library(
             name: "PersonalSync",
-            targets: ["CalendarSync"]
+            targets: ["PersonalSync"]
         ),
     ],
     dependencies: [
@@ -20,15 +20,15 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "CalendarSync",
+            name: "PersonalSync",
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift")
             ]
         ),
 
         .testTarget(
-            name: "CalendarSyncTests",
-            dependencies: ["CalendarSync"]
+            name: "PersonalSyncTests",
+            dependencies: ["PersonalSync"]
         ),
     ]
 ) 

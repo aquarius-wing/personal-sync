@@ -1,5 +1,5 @@
 import SwiftUI
-import CalendarSync
+import PersonalSync
 import EventKit
 
 enum TimeFilter: CaseIterable {

@@ -1,5 +1,5 @@
 import XCTest
-@testable import CalendarSync
+@testable import PersonalSync
 import EventKit
 
 /// 简化的集成测试示例：展示如何在测试中模拟日历环境

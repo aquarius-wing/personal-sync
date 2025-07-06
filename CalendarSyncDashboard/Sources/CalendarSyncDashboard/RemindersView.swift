@@ -1,5 +1,5 @@
 import SwiftUI
-import CalendarSync
+import PersonalSync
 
 struct RemindersView: View {
     @EnvironmentObject var manager: ReminderSyncManager

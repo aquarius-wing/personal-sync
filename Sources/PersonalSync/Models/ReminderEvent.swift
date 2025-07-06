@@ -248,10 +248,26 @@ extension ReminderEvent {
     }
     
     /// Search reminders by keyword
-    public static func searchReminders(keyword: String) -> QueryInterfaceRequest<ReminderEvent> {
-        return ReminderEvent
-            .filter(Columns.title.like("%\(keyword)%") || Columns.notes.like("%\(keyword)%"))
-            .order(Columns.dueDate, Columns.priority)
+    public static func searchReminders(keyword: String, from: Date? = nil, to: Date? = nil, listIdentifierList: [String]? = nil) -> QueryInterfaceRequest<ReminderEvent> {
+        let pattern = "%\(keyword)%"
+        var query = ReminderEvent
+            .filter(Columns.title.like(pattern) || Columns.notes.like(pattern))
+        
+        // Add date range filter if provided
+        if let fromDate = from {
+            query = query.filter(Columns.dueDate >= fromDate)
+        }
+        
+        if let toDate = to {
+            query = query.filter(Columns.dueDate <= toDate)
+        }
+        
+        // Add list identifier filter if provided
+        if let listIds = listIdentifierList, !listIds.isEmpty {
+            query = query.filter(listIds.contains(Columns.listIdentifier))
+        }
+        
+        return query.order(Columns.dueDate, Columns.priority)
     }
     
     /// Get high priority reminders

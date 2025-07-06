@@ -89,8 +89,75 @@ internal class DatabaseManager {
     }
     
     private func performMigrations(_ db: Database) throws {
-        // Future migrations can be added here
-        let currentVersion = try db.tableExists("calendar_events") ? 1 : 0
+        // Check if we need to migrate the calendar_events table
+        if try db.tableExists("calendar_events") {
+            // Check if the table has the new columns
+            let tableInfo = try db.columns(in: "calendar_events")
+            let columnNames = Set(tableInfo.map { $0.name })
+            
+            let requiredColumns = Set([
+                "eventIdentifier", "title", "notes", "startDate", "endDate", "isAllDay",
+                "calendarIdentifier", "calendarTitle", "location", "url", "lastModifiedDate",
+                "creationDate", "status", "hasRecurrenceRules", "timeZone", "recurrenceRule",
+                "hasAlarms", "attendeesJson", "isDetached", "syncedAt"
+            ])
+            
+            let missingColumns = requiredColumns.subtracting(columnNames)
+            
+            if !missingColumns.isEmpty {
+                if configuration.enableLogging {
+                    print("Migrating calendar_events table - adding missing columns: \(missingColumns)")
+                }
+                
+                // Add missing columns
+                for column in missingColumns {
+                    switch column {
+                    case "timeZone":
+                        try db.alter(table: "calendar_events") { t in
+                            t.add(column: "timeZone", .text)
+                        }
+                    case "recurrenceRule":
+                        try db.alter(table: "calendar_events") { t in
+                            t.add(column: "recurrenceRule", .text)
+                        }
+                    case "hasAlarms":
+                        try db.alter(table: "calendar_events") { t in
+                            t.add(column: "hasAlarms", .boolean).notNull().defaults(to: false)
+                        }
+                    case "attendeesJson":
+                        try db.alter(table: "calendar_events") { t in
+                            t.add(column: "attendeesJson", .text)
+                        }
+                    case "isDetached":
+                        try db.alter(table: "calendar_events") { t in
+                            t.add(column: "isDetached", .boolean).notNull().defaults(to: false)
+                        }
+                    default:
+                        break
+                    }
+                }
+            }
+        }
+        
+        // Check and migrate reminder_events table if needed
+        if try db.tableExists("reminder_events") {
+            let tableInfo = try db.columns(in: "reminder_events")
+            let columnNames = Set(tableInfo.map { $0.name })
+            
+            let requiredColumns = Set([
+                "reminderIdentifier", "title", "notes", "dueDate", "completionDate", "isCompleted",
+                "priority", "listIdentifier", "listTitle", "url", "lastModifiedDate",
+                "creationDate", "hasAlarms", "syncedAt"
+            ])
+            
+            let missingColumns = requiredColumns.subtracting(columnNames)
+            
+            if !missingColumns.isEmpty && configuration.enableLogging {
+                print("Migrating reminder_events table - adding missing columns: \(missingColumns)")
+            }
+        }
+        
+        let currentVersion = try db.tableExists("calendar_events") ? 2 : 0
         
         if configuration.enableLogging {
             print("Database version: \(currentVersion)")
@@ -471,10 +538,10 @@ internal class DatabaseManager {
     }
     
     /// Search reminders by keyword
-    func searchReminders(keyword: String) throws -> [ReminderEvent] {
+    func searchReminders(keyword: String, from: Date? = nil, to: Date? = nil, listIdentifierList: [String]? = nil) throws -> [ReminderEvent] {
         return try dbQueue.read { db in
             return try ReminderEvent
-                .searchReminders(keyword: keyword)
+                .searchReminders(keyword: keyword, from: from, to: to, listIdentifierList: listIdentifierList)
                 .fetchAll(db)
         }
     }

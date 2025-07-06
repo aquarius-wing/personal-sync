@@ -1,5 +1,5 @@
 import SwiftUI
-import CalendarSync
+import PersonalSync
 
 struct CalendarView: View {
     @EnvironmentObject var manager: CalendarSyncManager

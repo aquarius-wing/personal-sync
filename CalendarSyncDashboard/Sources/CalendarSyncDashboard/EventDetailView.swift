@@ -1,5 +1,5 @@
 import SwiftUI
-import CalendarSync
+import PersonalSync
 
 struct EventDetailView: View {
     let event: CalendarEvent

@@ -298,8 +298,8 @@ public class ReminderSync {
     }
     
     /// Search reminders
-    public func searchReminders(keyword: String) throws -> [ReminderEvent] {
-        return try databaseManager.searchReminders(keyword: keyword)
+    public func searchReminders(keyword: String, from: Date? = nil, to: Date? = nil, listIdentifierList: [String]? = nil) throws -> [ReminderEvent] {
+        return try databaseManager.searchReminders(keyword: keyword, from: from, to: to, listIdentifierList: listIdentifierList)
     }
     
     /// Get high priority reminders

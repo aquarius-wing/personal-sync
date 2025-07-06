@@ -14,7 +14,7 @@ let package = Package(
         .target(
             name: "CalendarSyncDashboard",
             dependencies: [
-                .product(name: "CalendarSync", package: "swift-sync-system-data")
+                .product(name: "PersonalSync", package: "swift-sync-system-data")
             ]
         )
     ]
