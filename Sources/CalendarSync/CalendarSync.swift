@@ -222,8 +222,8 @@ public class CalendarSync {
     }
     
     /// Search events by keyword
-    public func searchEvents(keyword: String) throws -> [CalendarEvent] {
-        return try databaseManager.searchEvents(keyword: keyword)
+    public func searchEvents(keyword: String, from: Date? = nil, to: Date? = nil, calendarIdentifierList: [String]? = nil) throws -> [CalendarEvent] {
+        return try databaseManager.searchEvents(keyword: keyword, from: from, to: to, calendarIdentifierList: calendarIdentifierList)
     }
     
     /// Get events by calendar

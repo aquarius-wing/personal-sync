@@ -125,6 +125,30 @@ let weekEvents = try calendarSync.getEvents(from: startDate, to: endDate)
 // Search by keyword
 let searchResults = try calendarSync.searchEvents(keyword: "meeting")
 
+// Search with optional filters
+// Search within a specific date range
+let nextMonth = Calendar.current.date(byAdding: .month, value: 1, to: Date())!
+let timeRangeResults = try calendarSync.searchEvents(
+    keyword: "conference",
+    from: Date(),
+    to: nextMonth
+)
+
+// Search within specific calendars
+let workCalendars = ["work-calendar-id", "project-calendar-id"]
+let workResults = try calendarSync.searchEvents(
+    keyword: "standup",
+    calendarIdentifierList: workCalendars
+)
+
+// Search with all filters combined
+let complexResults = try calendarSync.searchEvents(
+    keyword: "team",
+    from: Date(),
+    to: nextMonth,
+    calendarIdentifierList: workCalendars
+)
+
 // Get today's events
 let todayEvents = try calendarSync.getTodayEvents()
 
@@ -171,7 +195,7 @@ print("Last sync duration: \(stats.lastSyncDuration)s")
 - `getEvents(from: Date, to: Date) throws -> [CalendarEvent]` - Get events in date range
 - `getTodayEvents() throws -> [CalendarEvent]` - Get today's events
 - `getUpcomingEvents(limit: Int) throws -> [CalendarEvent]` - Get upcoming events
-- `searchEvents(keyword: String) throws -> [CalendarEvent]` - Search events by keyword
+- `searchEvents(keyword: String, from: Date?, to: Date?, calendarIdentifierList: [String]?) throws -> [CalendarEvent]` - Search events by keyword with optional date range and calendar filter
 - `getEventsByCalendar(_ calendarIdentifier: String) throws -> [CalendarEvent]` - Get events from specific calendar
 
 #### Control Methods (Advanced Usage)
@@ -290,6 +314,72 @@ To run the demo project:
 1. Clone the repository
 2. Open `PersonalSyncDashboard/Package.swift` in Xcode
 3. Build and run the project
+
+## Advanced Search Usage
+
+The `searchEvents` method provides powerful filtering capabilities. Here are comprehensive examples:
+
+```swift
+import PersonalSync
+
+do {
+    let calendarSync = try CalendarSync()
+    
+    // Basic keyword search
+    let basicResults = try calendarSync.searchEvents(keyword: "meeting")
+    
+    // Search within the next 30 days
+    let thirtyDaysFromNow = Calendar.current.date(byAdding: .day, value: 30, to: Date())!
+    let upcomingMeetings = try calendarSync.searchEvents(
+        keyword: "meeting",
+        from: Date(),
+        to: thirtyDaysFromNow
+    )
+    
+    // Search in specific calendars only
+    let workCalendars = ["work-calendar-id", "team-calendar-id"]
+    let workEvents = try calendarSync.searchEvents(
+        keyword: "project",
+        calendarIdentifierList: workCalendars
+    )
+    
+    // Search last week's events
+    let lastWeekStart = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+    let lastWeekEvents = try calendarSync.searchEvents(
+        keyword: "standup",
+        from: lastWeekStart,
+        to: Date()
+    )
+    
+    // Complex search: specific keyword, date range, and calendars
+    let startOfMonth = Calendar.current.dateInterval(of: .month, for: Date())?.start ?? Date()
+    let endOfMonth = Calendar.current.dateInterval(of: .month, for: Date())?.end ?? Date()
+    let monthlyReports = try calendarSync.searchEvents(
+        keyword: "report",
+        from: startOfMonth,
+        to: endOfMonth,
+        calendarIdentifierList: ["work-calendar-id"]
+    )
+    
+    print("Found \(basicResults.count) total meetings")
+    print("Found \(upcomingMeetings.count) upcoming meetings")
+    print("Found \(workEvents.count) work project events")
+    print("Found \(lastWeekEvents.count) standups last week")
+    print("Found \(monthlyReports.count) monthly reports")
+    
+} catch {
+    print("Search failed: \(error)")
+}
+```
+
+### Parameter Details
+
+- **keyword**: Required. The search term to match against event title, notes, and location
+- **from**: Optional. Include only events starting on or after this date
+- **to**: Optional. Include only events ending on or before this date  
+- **calendarIdentifierList**: Optional. Include only events from these specific calendars
+
+**Note**: All parameters are optional except `keyword`. You can use any combination of the optional parameters to refine your search.
 
 ## Installation
 

@@ -167,10 +167,10 @@ internal class DatabaseManager {
     }
     
     /// Search events by keyword
-    func searchEvents(keyword: String) throws -> [CalendarEvent] {
+    func searchEvents(keyword: String, from: Date? = nil, to: Date? = nil, calendarIdentifierList: [String]? = nil) throws -> [CalendarEvent] {
         return try dbQueue.read { db in
             return try CalendarEvent
-                .searchEvents(keyword: keyword)
+                .searchEvents(keyword: keyword, from: from, to: to, calendarIdentifierList: calendarIdentifierList)
                 .fetchAll(db)
         }
     }

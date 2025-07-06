@@ -357,11 +357,26 @@ extension CalendarEvent {
     }
     
     /// Search events by keyword
-    public static func searchEvents(keyword: String) -> QueryInterfaceRequest<CalendarEvent> {
+    public static func searchEvents(keyword: String, from: Date? = nil, to: Date? = nil, calendarIdentifierList: [String]? = nil) -> QueryInterfaceRequest<CalendarEvent> {
         let pattern = "%\(keyword)%"
-        return CalendarEvent
+        var query = CalendarEvent
             .filter(Columns.title.like(pattern) || Columns.notes.like(pattern) || Columns.location.like(pattern))
-            .order(Columns.startDate.desc)
+        
+        // Add date range filter if provided
+        if let fromDate = from {
+            query = query.filter(Columns.startDate >= fromDate)
+        }
+        
+        if let toDate = to {
+            query = query.filter(Columns.endDate <= toDate)
+        }
+        
+        // Add calendar identifier filter if provided
+        if let calendarIds = calendarIdentifierList, !calendarIds.isEmpty {
+            query = query.filter(calendarIds.contains(Columns.calendarIdentifier))
+        }
+        
+        return query.order(Columns.startDate.desc)
     }
     
     /// Get events by calendar
