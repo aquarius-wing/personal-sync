@@ -96,7 +96,7 @@ public class ReminderSync {
     // MARK: - Properties
     
     /// Configuration
-    private let configuration: CalendarSyncConfiguration
+    private let configuration: PersonalSyncConfiguration
     
     /// Database manager
     private let databaseManager: DatabaseManager
@@ -169,7 +169,7 @@ public class ReminderSync {
     }
     
     /// Initialize with custom configuration
-    public init(configuration: CalendarSyncConfiguration = .default, eventStore: ReminderStoreProtocol? = nil) throws {
+    public init(configuration: PersonalSyncConfiguration = .default, eventStore: ReminderStoreProtocol? = nil) throws {
         self.configuration = configuration
         self.eventStore = eventStore ?? EKEventStore()
         
@@ -202,7 +202,7 @@ public class ReminderSync {
         // Request reminder permission
         requestReminderPermission { [weak self] granted in
             guard let self = self, granted else {
-                self?.updateSyncStatus(.error(CalendarSyncError.permissionDenied))
+                self?.updateSyncStatus(.error(PersonalSyncError.permissionDenied))
                 return
             }
             

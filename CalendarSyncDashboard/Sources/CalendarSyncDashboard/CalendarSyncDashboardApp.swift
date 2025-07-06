@@ -52,7 +52,7 @@ class CalendarSyncManager: ObservableObject {
         guard !isInitialized else { return }
         
         do {
-            let config = CalendarSyncConfiguration(
+            let config = PersonalSyncConfiguration(
                 enableNotificationSync: true,
                 enableBackgroundSync: true,
                 autoStart: true,
@@ -136,7 +136,7 @@ class ReminderSyncManager: ObservableObject {
         guard !isInitialized else { return }
         
         do {
-            let config = CalendarSyncConfiguration(
+            let config = PersonalSyncConfiguration(
                 enableNotificationSync: true,
                 enableBackgroundSync: true,
                 autoStart: true,

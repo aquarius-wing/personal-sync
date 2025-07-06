@@ -14,7 +14,7 @@ swift-sync-system-data/
 │   ├── CalendarSync.swift         # Core sync engine (451 lines)
 │   ├── CalendarEvent.swift        # Event data model (282 lines)
 │   ├── DatabaseManager.swift     # SQLite database operations (346 lines)
-│   ├── CalendarSyncConfiguration.swift # Configuration options (137 lines)
+│   ├── PersonalSyncConfiguration.swift # Configuration options (137 lines)
 │   ├── SyncStatistics.swift      # Sync metrics and stats (54 lines)
 │   ├── SyncStatus.swift          # Sync state enum (41 lines)
 │   ├── CalendarSync+Exports.swift # Public API exports (14 lines)
@@ -56,7 +56,7 @@ swift-sync-system-data/
    - EventKit to SQLite conversion
    - Codable implementation
 
-4. **CalendarSyncConfiguration.swift** - Configuration system
+4. **PersonalSyncConfiguration.swift** - Configuration system
    - Customizable sync behavior
    - Performance tuning options
    - Feature toggles
@@ -249,7 +249,7 @@ swift test --enable-code-coverage
 
 #### Enable Verbose Logging
 ```swift
-let config = CalendarSyncConfiguration(
+let config = PersonalSyncConfiguration(
     enableLogging: true,
     // ... other options
 )
@@ -347,7 +347,7 @@ This project follows [Semantic Versioning (SemVer)](https://semver.org/):
 
 ### Breaking Changes
 - `CalendarSync.init()` now throws instead of returning optional
-- Renamed `SyncConfiguration` to `CalendarSyncConfiguration`
+- Renamed `SyncConfiguration` to `PersonalSyncConfiguration`
 
 ### Upgrade Guide
 - Update initialization code to handle thrown errors

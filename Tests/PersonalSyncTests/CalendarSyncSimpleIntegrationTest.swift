@@ -39,7 +39,7 @@ class CalendarSyncSimpleIntegrationTest: XCTestCase {
         print("📅 创建了1个测试事件")
         
         // 2. 创建 CalendarSync 实例
-        let config = CalendarSyncConfiguration(
+        let config = PersonalSyncConfiguration(
             enableNotificationSync: false,
             enableBackgroundSync: false,
             autoStart: false,
@@ -83,7 +83,7 @@ class CalendarSyncSimpleIntegrationTest: XCTestCase {
         let testCalendar = mockEventStore.addMockCalendar(identifier: "test-cal", title: "测试日历")
         
         // 创建 CalendarSync
-        let config = CalendarSyncConfiguration(
+        let config = PersonalSyncConfiguration(
             enableNotificationSync: false,
             enableBackgroundSync: false,
             autoStart: false,
@@ -155,7 +155,7 @@ class CalendarSyncSimpleIntegrationTest: XCTestCase {
         )
         
         // 创建 CalendarSync
-        let config = CalendarSyncConfiguration(
+        let config = PersonalSyncConfiguration(
             enableNotificationSync: false,
             enableBackgroundSync: false,
             autoStart: false,
@@ -199,7 +199,7 @@ class CalendarSyncSimpleIntegrationTest: XCTestCase {
         )
         
         // 创建 CalendarSync
-        let config = CalendarSyncConfiguration(
+        let config = PersonalSyncConfiguration(
             enableNotificationSync: false,
             enableBackgroundSync: false,
             autoStart: false,

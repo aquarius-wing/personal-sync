@@ -4,9 +4,9 @@ import GRDB
 /// Database manager for CalendarSync
 internal class DatabaseManager {
     private let dbQueue: DatabaseQueue
-    private let configuration: CalendarSyncConfiguration
+    private let configuration: PersonalSyncConfiguration
     
-    init(configuration: CalendarSyncConfiguration) throws {
+    init(configuration: PersonalSyncConfiguration) throws {
         self.configuration = configuration
         
         // Create database queue

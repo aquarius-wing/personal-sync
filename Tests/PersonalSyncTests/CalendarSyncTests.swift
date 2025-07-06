@@ -137,7 +137,7 @@ class MockEventStore: EventStoreProtocol {
 final class CalendarSyncTests: XCTestCase {
     
     var calendarSync: CalendarSync!
-    var testConfiguration: CalendarSyncConfiguration!
+    var testConfiguration: PersonalSyncConfiguration!
     var mockEventStore: MockEventStore!
     
     override func setUpWithError() throws {
@@ -145,7 +145,7 @@ final class CalendarSyncTests: XCTestCase {
         mockEventStore = MockEventStore()
         
         // Setup test configuration
-        testConfiguration = CalendarSyncConfiguration(
+        testConfiguration = PersonalSyncConfiguration(
             enableNotificationSync: false,
             enableBackgroundSync: false,
             autoStart: false,
@@ -171,7 +171,7 @@ final class CalendarSyncTests: XCTestCase {
     }
     
     func testDefaultConfiguration() throws {
-        let defaultConfig = CalendarSyncConfiguration.default
+        let defaultConfig = PersonalSyncConfiguration.default
         
         XCTAssertTrue(defaultConfig.enableNotificationSync)
         XCTAssertTrue(defaultConfig.enableBackgroundSync)
@@ -183,15 +183,15 @@ final class CalendarSyncTests: XCTestCase {
     
     func testConfigurationValidation() throws {
         // Test invalid retry attempts
-        var invalidConfig = CalendarSyncConfiguration(maxRetryAttempts: -1)
+        var invalidConfig = PersonalSyncConfiguration(maxRetryAttempts: -1)
         XCTAssertThrowsError(try invalidConfig.validate())
         
         // Test invalid sync interval
-        invalidConfig = CalendarSyncConfiguration(syncInterval: 30)
+        invalidConfig = PersonalSyncConfiguration(syncInterval: 30)
         XCTAssertThrowsError(try invalidConfig.validate())
         
         // Test invalid batch size
-        invalidConfig = CalendarSyncConfiguration(batchSize: 0)
+        invalidConfig = PersonalSyncConfiguration(batchSize: 0)
         XCTAssertThrowsError(try invalidConfig.validate())
     }
     
@@ -265,10 +265,10 @@ final class CalendarSyncTests: XCTestCase {
         XCTAssertNotEqual(insertedType, deletedType)
     }
     
-    func testCalendarSyncError() throws {
-        let permissionError = CalendarSyncError.permissionDenied
-        let configError = CalendarSyncError.invalidConfiguration("Test error")
-        let syncError = CalendarSyncError.syncInProgress
+    func testPersonalSyncError() throws {
+        let permissionError = PersonalSyncError.permissionDenied
+        let configError = PersonalSyncError.invalidConfiguration("Test error")
+        let syncError = PersonalSyncError.syncInProgress
         
         XCTAssertNotNil(permissionError.errorDescription)
         XCTAssertNotNil(configError.errorDescription)
@@ -343,7 +343,7 @@ final class CalendarSyncTests: XCTestCase {
         // Setup initial state
         let testCalendar = mockEventStore.addMockCalendar(identifier: "test-calendar", title: "Test Calendar")
         calendarSync = try CalendarSync(
-            configuration: CalendarSyncConfiguration(
+            configuration: PersonalSyncConfiguration(
                 enableNotificationSync: true,
                 enableBackgroundSync: false,
                 autoStart: false,
@@ -478,7 +478,7 @@ final class CalendarSyncTests: XCTestCase {
         let errorExpectation = expectation(description: "Permission denied error")
         calendarSync.onSyncStatusChanged = { status in
             if case .error(let error) = status {
-                if case .permissionDenied = error as? CalendarSyncError {
+                if case .permissionDenied = error as? PersonalSyncError {
                     errorExpectation.fulfill()
                 }
             }
@@ -496,7 +496,7 @@ final class CalendarSyncTests: XCTestCase {
     
     func testBackgroundSyncTimer() throws {
         // Setup configuration with minimum sync interval for testing
-        let backgroundConfig = CalendarSyncConfiguration(
+        let backgroundConfig = PersonalSyncConfiguration(
             enableNotificationSync: false,
             enableBackgroundSync: true,
             autoStart: false,

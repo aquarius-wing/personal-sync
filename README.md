@@ -108,11 +108,11 @@ This approach ensures:
 
 ### Custom Configuration
 
-You can customize PersonalSync behavior using `CalendarSyncConfiguration`:
+You can customize PersonalSync behavior using `PersonalSyncConfiguration`:
 
 ```swift
 // Custom configuration with auto-start
-let config = CalendarSyncConfiguration(
+let config = PersonalSyncConfiguration(
     enableBackgroundSync: true, // Enable background sync
     calendarIdentifiers: ["calendar-id-1", "calendar-id-2"], // Specific calendars to sync
     autoStart: true, // Auto-start sync (default: true)
@@ -245,7 +245,7 @@ print("Today's reminders: \(reminderStats.todayReminders)")
 
 #### Initialization
 - `init() throws` - Create instance with default configuration and auto-start sync
-- `init(configuration: CalendarSyncConfiguration) throws` - Create instance with custom configuration
+- `init(configuration: PersonalSyncConfiguration) throws` - Create instance with custom configuration
 
 **Note**: Initializers are now throwing - they will throw an error if configuration is invalid or database initialization fails.
 
@@ -275,7 +275,7 @@ print("Today's reminders: \(reminderStats.todayReminders)")
 
 #### Initialization
 - `init() throws` - Create instance with default configuration and auto-start sync
-- `init(configuration: CalendarSyncConfiguration) throws` - Create instance with custom configuration
+- `init(configuration: PersonalSyncConfiguration) throws` - Create instance with custom configuration
 
 #### Properties
 - `isActive: Bool { get }` - Whether sync is active
@@ -303,7 +303,7 @@ print("Today's reminders: \(reminderStats.todayReminders)")
 - `onSyncStatusChanged: ((ReminderSyncStatus) -> Void)?` - Sync status change callback
 - `onReminderUpdated: ((ReminderEvent, ReminderUpdateType) -> Void)?` - Reminder update callback
 
-### CalendarSyncConfiguration
+### PersonalSyncConfiguration
 
 Configuration options (shared by both CalendarSync and ReminderSync):
 - `enableNotificationSync: Bool` - Enable notification-based real-time sync, default: true
@@ -390,9 +390,9 @@ do {
     let calendarSync = try CalendarSync()
     let reminderSync = try ReminderSync()
     // Use calendarSync and reminderSync...
-} catch CalendarSyncError.invalidConfiguration(let message) {
+} catch PersonalSyncError.invalidConfiguration(let message) {
     print("Configuration error: \(message)")
-} catch CalendarSyncError.databaseError(let message) {
+} catch PersonalSyncError.databaseError(let message) {
     print("Database error: \(message)")
 } catch {
     print("Unknown error: \(error)")

@@ -7,14 +7,14 @@ class CalendarSyncIntegrationTests: XCTestCase {
     
     var calendarSync: CalendarSync!
     var mockEventStore: MockEventStore!
-    var testConfiguration: CalendarSyncConfiguration!
+    var testConfiguration: PersonalSyncConfiguration!
     
     override func setUpWithError() throws {
         // Setup mock event store
         mockEventStore = MockEventStore()
         
-        // Setup test configuration  
-        testConfiguration = CalendarSyncConfiguration(
+                // Setup test configuration
+        testConfiguration = PersonalSyncConfiguration(
             enableNotificationSync: true,
             enableBackgroundSync: false,
             autoStart: false,
@@ -176,7 +176,7 @@ class CalendarSyncIntegrationTests: XCTestCase {
         let calendar = mockEventStore.addMockCalendar(identifier: "test-calendar", title: "测试日历")
         
         calendarSync = try CalendarSync(
-            configuration: CalendarSyncConfiguration(
+            configuration: PersonalSyncConfiguration(
                 enableNotificationSync: true,
                 enableBackgroundSync: false,
                 autoStart: false,

@@ -1,7 +1,7 @@
 import Foundation
 
-/// Configuration for CalendarSync
-public struct CalendarSyncConfiguration {
+/// Configuration for PersonalSync
+public struct PersonalSyncConfiguration {
     /// Enable notification-based real-time sync
     public let enableNotificationSync: Bool
     
@@ -30,7 +30,7 @@ public struct CalendarSyncConfiguration {
     public let batchSize: Int
     
     /// Default configuration
-    public static let `default` = CalendarSyncConfiguration()
+    public static let `default` = PersonalSyncConfiguration()
     
     public init(
         enableNotificationSync: Bool = true,
@@ -68,29 +68,29 @@ public struct CalendarSyncConfiguration {
     /// Validate configuration
     public func validate() throws {
         if maxRetryAttempts < 0 {
-            throw CalendarSyncError.invalidConfiguration("maxRetryAttempts must be >= 0")
+            throw PersonalSyncError.invalidConfiguration("maxRetryAttempts must be >= 0")
         }
         
         if syncInterval < 60 {
-            throw CalendarSyncError.invalidConfiguration("syncInterval must be >= 60 seconds")
+            throw PersonalSyncError.invalidConfiguration("syncInterval must be >= 60 seconds")
         }
         
         if batchSize <= 0 {
-            throw CalendarSyncError.invalidConfiguration("batchSize must be > 0")
+            throw PersonalSyncError.invalidConfiguration("batchSize must be > 0")
         }
         
         // Validate database path if provided
         if let path = databasePath {
             let directory = URL(fileURLWithPath: path).deletingLastPathComponent()
             if !FileManager.default.fileExists(atPath: directory.path) {
-                throw CalendarSyncError.invalidConfiguration("Database directory does not exist: \(directory.path)")
+                throw PersonalSyncError.invalidConfiguration("Database directory does not exist: \(directory.path)")
             }
         }
     }
 }
 
-// MARK: - CalendarSyncError
-public enum CalendarSyncError: Error, LocalizedError {
+// MARK: - PersonalSyncError
+public enum PersonalSyncError: Error, LocalizedError {
     case permissionDenied
     case databaseError(String)
     case invalidConfiguration(String)
@@ -119,10 +119,10 @@ public enum CalendarSyncError: Error, LocalizedError {
     }
 }
 
-extension CalendarSyncConfiguration: CustomStringConvertible {
+extension PersonalSyncConfiguration: CustomStringConvertible {
     public var description: String {
         return """
-        CalendarSyncConfiguration:
+        PersonalSyncConfiguration:
         - Notification Sync: \(enableNotificationSync)
         - Background Sync: \(enableBackgroundSync)
         - Calendar IDs: \(calendarIdentifiers?.joined(separator: ", ") ?? "All")

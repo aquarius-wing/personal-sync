@@ -27,7 +27,7 @@ public class CalendarSync {
     // MARK: - Properties
     
     /// Configuration
-    private let configuration: CalendarSyncConfiguration
+    private let configuration: PersonalSyncConfiguration
     
     /// Database manager
     private let databaseManager: DatabaseManager
@@ -103,7 +103,7 @@ public class CalendarSync {
     }
     
     /// Initialize with custom configuration
-    public init(configuration: CalendarSyncConfiguration = .default, eventStore: EventStoreProtocol? = nil) throws {
+    public init(configuration: PersonalSyncConfiguration = .default, eventStore: EventStoreProtocol? = nil) throws {
         self.configuration = configuration
         self.eventStore = eventStore ?? EKEventStore()
         
@@ -136,7 +136,7 @@ public class CalendarSync {
         // Request calendar permission
         requestCalendarPermission { [weak self] granted in
             guard let self = self, granted else {
-                self?.updateSyncStatus(.error(CalendarSyncError.permissionDenied))
+                self?.updateSyncStatus(.error(PersonalSyncError.permissionDenied))
                 return
             }
             
