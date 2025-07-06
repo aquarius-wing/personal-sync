@@ -1,58 +1,59 @@
 # CalendarSync
 
-## What to do?
+Automatically sync system calendar data to SQLite database in the background.
 
-CalendarSync 是一个Swift包，专门用于自动后台同步系统日历数据到SQLite数据库。它使用GRDB框架提供高效的数据库操作，一旦初始化后即自动开始工作，无需手动干预即可持续同步iOS/macOS系统日历中的事件数据。
+* [Overview](#overview)
+* [Requirements](#requirements)
+* [Getting started](#getting-started)
+  * [Permission Setup](#permission-setup)
+  * [Basic Usage](#basic-usage)
+  * [Real-time Monitoring](#real-time-monitoring)
+  * [Custom Configuration](#custom-configuration)
+  * [Querying Synced Data](#querying-synced-data)
+  * [Sync Status Monitoring](#sync-status-monitoring)
+* [API Reference](#api-reference)
+* [Best Practices](#best-practices)
+* [Demo](#demo)
+* [Installation](#installation)
 
-### 主要功能
+## Overview
 
-- 🤖 **完全自动**: 初始化后自动开始同步，无需手动调用
-- 🗓️ **后台同步**: 在后台持续监听和同步系统日历变化
-- 🗃️ **SQLite存储**: 使用GRDB框架进行高效的SQLite数据库操作
-- 🔄 **实时监听**: 基于系统通知监听日历变化，立即同步数据
-- 📱 **跨平台**: 支持iOS和macOS平台
-- ⚡ **高性能**: 优化的增量同步算法，减少资源消耗
-- 🔒 **线程安全**: 支持多线程安全访问
+CalendarSync is a Swift package that automatically syncs system calendar data to a SQLite database in the background. It uses the GRDB framework for efficient database operations and starts working automatically once initialized, continuously syncing iOS/macOS system calendar events without manual intervention.
+
+CalendarSync provides comprehensive automatic synchronization features. You can monitor sync status, customize sync behavior, and query synced data efficiently. The package uses system notifications to listen for calendar changes and syncs data in real-time.
 
 ## Requirements
 
-- iOS 13.0+ / macOS 10.15+
-- Swift 5.5+
-- Xcode 13.0+
+You can use CalendarSync on the following platforms:
 
-## Installation
+* iOS 13.0+
+* macOS 10.15+
+* Swift 5.5+
+* Xcode 13.0+
 
-### Swift Package Manager
+## Getting started
 
-在Xcode中添加包依赖：
+### Permission Setup
 
-```swift
-dependencies: [
-    .package(url: "https://github.com/yourusername/swift-sync-system-data", from: "1.0.0")
-]
-```
-
-## Usage
-
-### 权限配置
-
-首先，在Info.plist中添加日历访问权限：
+First, add calendar access permission to your Info.plist:
 
 ```xml
 <key>NSCalendarsUsageDescription</key>
 <string>This app needs access to calendar to sync your events.</string>
 ```
 
-### 基本用法
+### Basic Usage
+
+The simplest way to use CalendarSync is to create an instance with the default configuration. The sync process starts automatically once initialized.
 
 ```swift
 import CalendarSync
 
 do {
-    // 创建实例即自动开始同步
+    // Create instance and auto-start sync
     let calendarSync = try CalendarSync()
     
-    // 可选：设置同步状态监听
+    // Optional: Set sync status listener
     calendarSync.onSyncStatusChanged = { status in
         switch status {
         case .syncing:
@@ -68,81 +69,83 @@ do {
 }
 ```
 
-### 实时监听机制
+### Real-time Monitoring
 
-CalendarSync内部使用系统通知来监听日历变化，无需轮询：
+CalendarSync uses system notifications to monitor calendar changes without polling:
 
 ```swift
-// 监听系统日历变化通知
+// Listen for system calendar change notifications
 NotificationCenter.default.addObserver(
     forName: .EKEventStoreChanged,
     object: eventStore,
     queue: nil
 ) { _ in
-    // 日历数据发生变化，立即同步
+    // Calendar data changed, sync immediately
     self.syncChanges()
 }
 ```
 
-这种方式确保了：
-- 📡 **即时响应**: 系统日历变化时立即触发同步
-- 🔋 **节能高效**: 避免不必要的轮询检查
-- 🎯 **精确同步**: 只在真正需要时才执行同步操作
+This approach ensures:
+- 📡 **Instant Response**: Immediately triggered when system calendar changes
+- 🔋 **Energy Efficient**: Avoids unnecessary polling
+- 🎯 **Precise Sync**: Only executes sync when truly needed
 
-### 自定义配置
+### Custom Configuration
+
+You can customize CalendarSync behavior using `CalendarSyncConfiguration`:
 
 ```swift
-// 自定义配置后自动开始同步
+// Custom configuration with auto-start
 let config = CalendarSyncConfiguration(
-    enableBackgroundSync: true, // 启用后台同步
-    calendarIdentifiers: ["calendar-id-1", "calendar-id-2"], // 指定要同步的日历
-    autoStart: true, // 是否自动开始同步（默认true）
-    enableNotificationSync: true // 启用基于通知的实时同步（默认true）
+    enableBackgroundSync: true, // Enable background sync
+    calendarIdentifiers: ["calendar-id-1", "calendar-id-2"], // Specific calendars to sync
+    autoStart: true, // Auto-start sync (default: true)
+    enableNotificationSync: true // Enable notification-based real-time sync (default: true)
 )
 
 do {
     let calendarSync = try CalendarSync(configuration: config)
-    // 无需调用sync()，已自动开始监听和同步
+    // No need to call sync() - already started listening and syncing
 } catch {
     print("Failed to initialize CalendarSync: \(error)")
 }
 ```
 
-### 查询同步的数据
+### Querying Synced Data
 
 ```swift
-// 查询所有事件
+// Get all events
 let events = try calendarSync.getAllEvents()
 
-// 按日期范围查询
+// Query by date range
 let startDate = Date()
 let endDate = Calendar.current.date(byAdding: .day, value: 7, to: startDate)!
 let weekEvents = try calendarSync.getEvents(from: startDate, to: endDate)
 
-// 按关键词搜索
+// Search by keyword
 let searchResults = try calendarSync.searchEvents(keyword: "meeting")
 
-// 获取今日事件
+// Get today's events
 let todayEvents = try calendarSync.getTodayEvents()
 
-// 获取即将到来的事件
+// Get upcoming events
 let upcomingEvents = try calendarSync.getUpcomingEvents(limit: 10)
 ```
 
-### 同步状态监控
+### Sync Status Monitoring
 
 ```swift
-// 检查同步状态
+// Check sync status
 if calendarSync.isActive {
     print("Calendar sync is running")
 }
 
-// 获取最后同步时间
+// Get last sync time
 if let lastSync = calendarSync.lastSyncTime {
     print("Last synced: \(lastSync)")
 }
 
-// 获取同步统计信息
+// Get sync statistics
 let stats = calendarSync.syncStatistics
 print("Total events: \(stats.totalEvents)")
 print("Last sync duration: \(stats.lastSyncDuration)s")
@@ -150,128 +153,122 @@ print("Last sync duration: \(stats.lastSyncDuration)s")
 
 ## API Reference
 
-### CalendarSync类
+### CalendarSync Class
 
-#### 初始化
+#### Initialization
+- `init() throws` - Create instance with default configuration and auto-start sync
+- `init(configuration: CalendarSyncConfiguration) throws` - Create instance with custom configuration
 
-- `init() throws` - 使用默认配置创建实例并自动开始同步
-- `init(configuration: CalendarSyncConfiguration) throws` - 使用自定义配置创建实例
+**Note**: Initializers are now throwing - they will throw an error if configuration is invalid or database initialization fails.
 
-**注意**: 初始化方法现在是throwing的，如果配置无效或数据库初始化失败会抛出错误。
+#### Properties
+- `isActive: Bool { get }` - Whether sync is active
+- `lastSyncTime: Date? { get }` - Last sync time
+- `syncStatistics: SyncStatistics { get }` - Sync statistics
 
-#### 属性
+#### Query Methods
+- `getAllEvents() throws -> [CalendarEvent]` - Get all synced events
+- `getEvents(from: Date, to: Date) throws -> [CalendarEvent]` - Get events in date range
+- `getTodayEvents() throws -> [CalendarEvent]` - Get today's events
+- `getUpcomingEvents(limit: Int) throws -> [CalendarEvent]` - Get upcoming events
+- `searchEvents(keyword: String) throws -> [CalendarEvent]` - Search events by keyword
+- `getEventsByCalendar(_ calendarIdentifier: String) throws -> [CalendarEvent]` - Get events from specific calendar
 
-- `isActive: Bool { get }` - 同步是否处于活动状态
-- `lastSyncTime: Date? { get }` - 最后同步时间
-- `syncStatistics: SyncStatistics { get }` - 同步统计信息
+#### Control Methods (Advanced Usage)
+- `pause()` - Pause automatic sync
+- `resume()` - Resume automatic sync
+- `forceSync()` - Force immediate sync
 
-#### 查询方法
-
-- `getAllEvents() throws -> [CalendarEvent]` - 获取所有同步的事件
-- `getEvents(from: Date, to: Date) throws -> [CalendarEvent]` - 获取指定日期范围的事件
-- `getTodayEvents() throws -> [CalendarEvent]` - 获取今日事件
-- `getUpcomingEvents(limit: Int) throws -> [CalendarEvent]` - 获取即将到来的事件
-- `searchEvents(keyword: String) throws -> [CalendarEvent]` - 搜索包含关键词的事件
-- `getEventsByCalendar(_ calendarIdentifier: String) throws -> [CalendarEvent]` - 获取特定日历的事件
-
-#### 控制方法（高级用法）
-
-- `pause()` - 暂停自动同步
-- `resume()` - 恢复自动同步
-- `forceSync()` - 强制立即同步一次
-
-#### 回调
-
-- `onSyncStatusChanged: ((SyncStatus) -> Void)?` - 同步状态变化回调
-- `onEventUpdated: ((CalendarEvent, UpdateType) -> Void)?` - 事件更新回调
+#### Callbacks
+- `onSyncStatusChanged: ((SyncStatus) -> Void)?` - Sync status change callback
+- `onEventUpdated: ((CalendarEvent, UpdateType) -> Void)?` - Event update callback
 
 ### CalendarSyncConfiguration
 
-配置选项：
+Configuration options:
+- `enableNotificationSync: Bool` - Enable notification-based real-time sync, default: true
+- `enableBackgroundSync: Bool` - Enable background sync, default: true
+- `calendarIdentifiers: [String]?` - Specific calendar IDs to sync, nil means sync all calendars
+- `databasePath: String?` - Custom database path
+- `autoStart: Bool` - Auto-start sync after initialization, default: true
+- `maxRetryAttempts: Int` - Maximum retry attempts on sync failure, default: 3
 
-- `enableNotificationSync: Bool` - 是否启用基于通知的实时同步，默认true
-- `enableBackgroundSync: Bool` - 是否启用后台同步，默认true
-- `calendarIdentifiers: [String]?` - 指定要同步的日历ID，nil表示同步所有日历
-- `databasePath: String?` - 自定义数据库路径
-- `autoStart: Bool` - 是否在初始化后自动开始同步，默认true
-- `maxRetryAttempts: Int` - 同步失败时的最大重试次数，默认3
-
-### SyncStatus枚举
+### SyncStatus Enum
 
 ```swift
 enum SyncStatus {
-    case idle           // 空闲状态
-    case syncing        // 正在同步
-    case synced(Int)    // 同步完成，参数为事件数量
-    case error(Error)   // 同步出错
+    case idle           // Idle state
+    case syncing        // Currently syncing
+    case synced(Int)    // Sync completed, parameter is event count
+    case error(Error)   // Sync error
 }
 ```
 
-### SyncStatistics结构
+### SyncStatistics Structure
 
-- `totalEvents: Int` - 总事件数
-- `lastSyncDuration: TimeInterval` - 上次同步耗时
-- `successfulSyncs: Int` - 成功同步次数
-- `failedSyncs: Int` - 失败同步次数
+- `totalEvents: Int` - Total number of events
+- `lastSyncDuration: TimeInterval` - Duration of last sync
+- `successfulSyncs: Int` - Number of successful syncs
+- `failedSyncs: Int` - Number of failed syncs
 
-## 最佳实践
+## Best Practices
 
-### 1. 应用生命周期管理
+### 1. Application Lifecycle Management
 
 ```swift
 class AppDelegate: UIApplicationDelegate {
     var calendarSync: CalendarSync?
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // 应用启动时自动开始同步
+        // Auto-start sync when app launches
         do {
             calendarSync = try CalendarSync()
         } catch {
             print("Failed to initialize CalendarSync: \(error)")
-            // 处理初始化失败的情况
+            // Handle initialization failure
         }
         return true
     }
     
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // 进入后台时自动继续同步（如果配置允许）
+        // Continue sync in background (if configuration allows)
     }
 }
 ```
 
-### 2. 内存管理
+### 2. Memory Management
 
 ```swift
-// CalendarSync会自动管理资源，但建议在不需要时置nil
+// CalendarSync manages resources automatically, but recommended to set nil when not needed
 deinit {
     calendarSync = nil
 }
 ```
 
-### 3. 错误处理
+### 3. Error Handling
 
-#### 初始化错误处理
+#### Initialization Error Handling
 
 ```swift
 do {
     let calendarSync = try CalendarSync()
-    // 使用 calendarSync...
+    // Use calendarSync...
 } catch CalendarSyncError.invalidConfiguration(let message) {
-    print("配置错误: \(message)")
+    print("Configuration error: \(message)")
 } catch CalendarSyncError.databaseError(let message) {
-    print("数据库错误: \(message)")
+    print("Database error: \(message)")
 } catch {
-    print("未知错误: \(error)")
+    print("Unknown error: \(error)")
 }
 ```
 
-#### 运行时错误处理
+#### Runtime Error Handling
 
 ```swift
 calendarSync.onSyncStatusChanged = { status in
     switch status {
     case .error(let error):
-        // 处理错误，比如权限被拒绝、磁盘空间不足等
+        // Handle errors like permission denied, insufficient disk space, etc.
         handleSyncError(error)
     default:
         break
@@ -279,30 +276,79 @@ calendarSync.onSyncStatusChanged = { status in
 }
 ```
 
+## Demo
+
+CalendarSync comes with a companion demo project that showcases its capabilities. You can explore the demo to discover the complete feature set, including:
+
+- Real-time calendar sync visualization
+- Query examples with different filters
+- Sync status monitoring
+- Custom configuration options
+
+To run the demo project:
+
+1. Clone the repository
+2. Open `CalendarSyncDashboard/Package.swift` in Xcode
+3. Build and run the project
+
+## Installation
+
+### Adding CalendarSync to a Swift Package
+
+To use CalendarSync in a Swift Package Manager project, add the following line to the dependencies in your `Package.swift` file:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/YOUR_USERNAME/CalendarSync.git", from: "1.0.0")
+]
+```
+
+Include `"CalendarSync"` as a dependency for your executable target:
+
+```swift
+.target(name: "<target>", dependencies: [
+    .product(name: "CalendarSync", package: "CalendarSync")
+])
+```
+
+Finally, add `import CalendarSync` to your source code.
+
+### Adding CalendarSync to an Xcode Project
+
+1. From the **File** menu, select **Add Package Dependencies...**
+2. Enter `https://github.com/YOUR_USERNAME/CalendarSync.git` into the *Search or Enter Package URL* search field
+3. Link **CalendarSync** to your application target
+
 ## FAQ
 
-**Q: 如何确保数据是最新的？**
-A: CalendarSync使用系统通知(.EKEventStoreChanged)监听日历变化，一旦系统日历有任何变化立即触发同步，确保数据始终是最新的。
+**Q: How do I ensure data is always up-to-date?**  
+A: CalendarSync uses system notifications (`.EKEventStoreChanged`) to monitor calendar changes. Any system calendar change immediately triggers a sync, ensuring data is always current.
 
-**Q: 会影响性能吗？**
-A: 基于通知的监听机制比定时轮询更高效，只在日历真正发生变化时才执行同步，结合增量同步和后台处理，对应用性能影响极小。
+**Q: Will this affect performance?**  
+A: The notification-based monitoring is more efficient than polling. Combined with incremental sync and background processing, it has minimal impact on app performance.
 
-**Q: 支持多个CalendarSync实例吗？**
-A: 支持，但建议使用单例模式以避免不必要的资源消耗。
+**Q: Can I use multiple CalendarSync instances?**  
+A: Yes, but we recommend using a singleton pattern to avoid unnecessary resource consumption.
+
+**Q: What happens if sync fails?**  
+A: CalendarSync will retry up to `maxRetryAttempts` times (default: 3) before reporting an error through the status callback.
 
 ## Contributing
 
-欢迎贡献代码！请先阅读[贡献指南](CONTRIBUTING.md)。
+We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) first.
 
 ## License
 
-MIT License. 详见[LICENSE](LICENSE)文件。
+CalendarSync is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
 
 ## Changelog
 
 ### v1.0.0
-- 初始版本发布
-- 自动日历同步功能
-- SQLite数据存储
-- 后台同步支持
-- 基于系统通知的实时监听日历变化（使用.EKEventStoreChanged通知）
+- Initial release
+- Automatic calendar sync functionality
+- SQLite data storage with GRDB
+- Background sync support
+- Real-time calendar change monitoring using `.EKEventStoreChanged` notifications
+- Comprehensive query API
+- Sync status monitoring
+- Custom configuration options
