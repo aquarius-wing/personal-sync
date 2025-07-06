@@ -1,4 +1,4 @@
-# CalendarSync
+# PersonalSync
 
 Automatically sync system calendar data to SQLite database in the background.
 
@@ -18,13 +18,13 @@ Automatically sync system calendar data to SQLite database in the background.
 
 ## Overview
 
-CalendarSync is a Swift package that automatically syncs system calendar data to a SQLite database in the background. It uses the GRDB framework for efficient database operations and starts working automatically once initialized, continuously syncing iOS/macOS system calendar events without manual intervention.
+PersonalSync is a Swift package that automatically syncs system calendar data to a SQLite database in the background. It uses the GRDB framework for efficient database operations and starts working automatically once initialized, continuously syncing iOS/macOS system calendar events without manual intervention.
 
-CalendarSync provides comprehensive automatic synchronization features. You can monitor sync status, customize sync behavior, and query synced data efficiently. The package uses system notifications to listen for calendar changes and syncs data in real-time.
+PersonalSync provides comprehensive automatic synchronization features. You can monitor sync status, customize sync behavior, and query synced data efficiently. The package uses system notifications to listen for calendar changes and syncs data in real-time.
 
 ## Requirements
 
-You can use CalendarSync on the following platforms:
+You can use PersonalSync on the following platforms:
 
 * iOS 13.0+
 * macOS 10.15+
@@ -44,10 +44,10 @@ First, add calendar access permission to your Info.plist:
 
 ### Basic Usage
 
-The simplest way to use CalendarSync is to create an instance with the default configuration. The sync process starts automatically once initialized.
+The simplest way to use PersonalSync is to create an instance with the default configuration. The sync process starts automatically once initialized.
 
 ```swift
-import CalendarSync
+import PersonalSync
 
 do {
     // Create instance and auto-start sync
@@ -71,7 +71,7 @@ do {
 
 ### Real-time Monitoring
 
-CalendarSync uses system notifications to monitor calendar changes without polling:
+PersonalSync uses system notifications to monitor calendar changes without polling:
 
 ```swift
 // Listen for system calendar change notifications
@@ -92,7 +92,7 @@ This approach ensures:
 
 ### Custom Configuration
 
-You can customize CalendarSync behavior using `CalendarSyncConfiguration`:
+You can customize PersonalSync behavior using `CalendarSyncConfiguration`:
 
 ```swift
 // Custom configuration with auto-start
@@ -239,7 +239,7 @@ class AppDelegate: UIApplicationDelegate {
 ### 2. Memory Management
 
 ```swift
-// CalendarSync manages resources automatically, but recommended to set nil when not needed
+// PersonalSync manages resources automatically, but recommended to set nil when not needed
 deinit {
     calendarSync = nil
 }
@@ -278,7 +278,7 @@ calendarSync.onSyncStatusChanged = { status in
 
 ## Demo
 
-CalendarSync comes with a companion demo project that showcases its capabilities. You can explore the demo to discover the complete feature set, including:
+PersonalSync comes with a companion demo project that showcases its capabilities. You can explore the demo to discover the complete feature set, including:
 
 - Real-time calendar sync visualization
 - Query examples with different filters
@@ -288,50 +288,50 @@ CalendarSync comes with a companion demo project that showcases its capabilities
 To run the demo project:
 
 1. Clone the repository
-2. Open `CalendarSyncDashboard/Package.swift` in Xcode
+2. Open `PersonalSyncDashboard/Package.swift` in Xcode
 3. Build and run the project
 
 ## Installation
 
-### Adding CalendarSync to a Swift Package
+### Adding PersonalSync to a Swift Package
 
-To use CalendarSync in a Swift Package Manager project, add the following line to the dependencies in your `Package.swift` file:
+To use PersonalSync in a Swift Package Manager project, add the following line to the dependencies in your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/YOUR_USERNAME/CalendarSync.git", from: "1.0.0")
+    .package(url: "https://github.com/YOUR_USERNAME/PersonalSync.git", from: "1.0.0")
 ]
 ```
 
-Include `"CalendarSync"` as a dependency for your executable target:
+Include `"PersonalSync"` as a dependency for your executable target:
 
 ```swift
 .target(name: "<target>", dependencies: [
-    .product(name: "CalendarSync", package: "CalendarSync")
+    .product(name: "PersonalSync", package: "PersonalSync")
 ])
 ```
 
-Finally, add `import CalendarSync` to your source code.
+Finally, add `import PersonalSync` to your source code.
 
-### Adding CalendarSync to an Xcode Project
+### Adding PersonalSync to an Xcode Project
 
 1. From the **File** menu, select **Add Package Dependencies...**
-2. Enter `https://github.com/YOUR_USERNAME/CalendarSync.git` into the *Search or Enter Package URL* search field
-3. Link **CalendarSync** to your application target
+2. Enter `https://github.com/YOUR_USERNAME/PersonalSync.git` into the *Search or Enter Package URL* search field
+3. Link **PersonalSync** to your application target
 
 ## FAQ
 
 **Q: How do I ensure data is always up-to-date?**  
-A: CalendarSync uses system notifications (`.EKEventStoreChanged`) to monitor calendar changes. Any system calendar change immediately triggers a sync, ensuring data is always current.
+A: PersonalSync uses system notifications (`.EKEventStoreChanged`) to monitor calendar changes. Any system calendar change immediately triggers a sync, ensuring data is always current.
 
 **Q: Will this affect performance?**  
 A: The notification-based monitoring is more efficient than polling. Combined with incremental sync and background processing, it has minimal impact on app performance.
 
-**Q: Can I use multiple CalendarSync instances?**  
+**Q: Can I use multiple PersonalSync instances?**  
 A: Yes, but we recommend using a singleton pattern to avoid unnecessary resource consumption.
 
 **Q: What happens if sync fails?**  
-A: CalendarSync will retry up to `maxRetryAttempts` times (default: 3) before reporting an error through the status callback.
+A: PersonalSync will retry up to `maxRetryAttempts` times (default: 3) before reporting an error through the status callback.
 
 ## Contributing
 
@@ -339,7 +339,7 @@ We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) 
 
 ## License
 
-CalendarSync is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
+PersonalSync is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
 
 ## Changelog
 
