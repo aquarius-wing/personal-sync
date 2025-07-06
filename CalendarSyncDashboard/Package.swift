@@ -8,7 +8,7 @@ let package = Package(
         .macOS(.v13)
     ],
     dependencies: [
-        .package(path: "../../")  // Reference to the main CalendarSync package
+        .package(path: "../")  // Reference to the main CalendarSync package
     ],
     targets: [
         .target(

@@ -9,7 +9,7 @@ options:
 
 packages:
   CalendarSync:
-    path: ../../
+    path: ../
 
 targets:
   CalendarSyncDashboard:
